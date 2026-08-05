@@ -1,10 +1,10 @@
 // NASTECH Gadgets — data model
 //
-// Dev uses SQLite (zero-install, file based). It is intentionally kept
-// Postgres-compatible: no native enums, no Decimal, no scalar lists — only
-// String / Int / Boolean / DateTime / Json, which behave identically on both
-// connectors. To move to Postgres for production, change `provider` below to
-// "postgresql" and point `url` at a real DATABASE_URL — nothing else changes.
+// PostgreSQL (e.g. Neon, Supabase, RDS) — required for any real deployment,
+// since serverless hosts (Vercel etc.) have no persistent disk for SQLite.
+// The model still avoids native enums/Decimal/scalar arrays (plain
+// String/Int/Json instead) purely to keep migrations simple and portable —
+// not a SQLite requirement anymore, just a nice constraint to keep.
 // Money is stored as Int in kobo (₦1 = 100 kobo) to avoid float rounding.
 
 generator client {
@@ -12,7 +12,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -87,7 +87,7 @@ model DeviceModel {
   image           String?
   releaseYear     Int?
   baseValueKobo   Int // best-condition, top-storage trade-in value
-  storageOptions  Json // e.g. ["64GB","128GB","256GB"] — always supplied by application code (SQLite rejects JSON column defaults)
+  storageOptions  Json // e.g. ["64GB","128GB","256GB"] — always supplied by application code
 
   sellRequests SellRequest[]
   products     Product[]
@@ -191,7 +191,7 @@ model Product {
   compareAtPriceKobo Int?
   stock              Int    @default(0)
 
-  images      Json // always supplied by application code (SQLite rejects JSON column defaults)
+  images      Json // always supplied by application code
   description String  @default("")
   specs       Json // always supplied by application code
 

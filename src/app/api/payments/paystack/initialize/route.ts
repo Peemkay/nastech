@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { paystackInitialize } from "@/lib/payments/paystack";
+import { getSiteUrl } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
   const { orderId } = await req.json().catch(() => ({}));
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (order.paymentStatus === "PAID") return NextResponse.json({ error: "Order is already paid" }, { status: 400 });
 
   const reference = `${order.code}-${Date.now().toString(36).toUpperCase()}`;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteUrl = getSiteUrl(req);
 
   try {
     const init = await paystackInitialize({

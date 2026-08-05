@@ -5,7 +5,7 @@
 ## Stack
 
 - **Next.js 16** (App Router, TypeScript, Tailwind v4)
-- **Prisma** ORM — SQLite for local dev (zero install), schema written to be Postgres-compatible for production (see below)
+- **Prisma** ORM — **PostgreSQL** (e.g. [Neon](https://neon.tech), free tier). Any Postgres works; Neon is the fastest to set up.
 - **Auth.js (NextAuth v5)** — credentials login, JWT sessions, role-based access (`CUSTOMER` / `ADMIN` / `SUPERADMIN`)
 - **Paystack** + **Flutterwave** + **manual bank transfer** — selectable/toggleable per admin settings, with webhook-verified payment confirmation
 - **Zustand** — client-side cart
@@ -13,10 +13,13 @@
 
 ## Getting started
 
+You need a Postgres database first — [Neon](https://neon.tech) has a free tier that takes under a minute (sign in with GitHub → New Project → copy the connection string). Any other Postgres (Supabase, RDS, local) works too.
+
 ```bash
 npm install
-npm run db:push    # create the local SQLite database from prisma/schema.prisma
-npm run db:seed     # load categories, brands, models, quote rules, sample products & users
+cp .env.example .env   # then paste your DATABASE_URL in
+npm run db:push        # create the schema
+npm run db:seed        # load categories, brands, models, quote rules, sample products & users
 npm run dev
 ```
 
@@ -34,15 +37,15 @@ Visit **http://localhost:3000**. Admin console is at **/admin/login**.
 
 ## Environment variables
 
-Copy `.env.example` to `.env` and fill in real values for anything beyond local dev:
+Copy `.env.example` to `.env` and fill in real values:
 
-- `DATABASE_URL` — defaults to local SQLite (`file:./dev.db`). For production, see "Moving to PostgreSQL" below.
-- `AUTH_SECRET` — session signing secret (`npx auth secret` to generate one).
+- `DATABASE_URL` — your Postgres connection string (Neon/Supabase/etc.).
+- `AUTH_SECRET` — session signing secret (`npx auth secret` to generate one). **Required** in production — the app won't start without it.
 - `PAYSTACK_SECRET_KEY` / `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` — from your Paystack dashboard (test or live).
 - `FLUTTERWAVE_SECRET_KEY` / `NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY` / `FLUTTERWAVE_WEBHOOK_SECRET_HASH` — from your Flutterwave dashboard. The webhook hash is a string **you** choose and set in both the Flutterwave dashboard and this env var.
-- `NEXT_PUBLIC_SITE_URL` — your deployed URL, used to build payment callback/redirect URLs.
+- `NEXT_PUBLIC_SITE_URL` — optional. Payment callback URLs auto-detect from the incoming request if this is unset, so it's safe to leave blank until you know your final domain.
 
-Payment gateways won't actually charge anything until you supply real Paystack/Flutterwave keys — with the placeholder test keys, initializing a payment will fail gracefully with an error message instead of silently succeeding.
+Payment gateways won't actually charge anything until you supply real Paystack/Flutterwave keys — with the placeholder test keys, initializing a payment will fail gracefully with an error message instead of silently succeeding. Bank transfer works with no keys at all.
 
 ### Wiring up webhooks
 
@@ -71,15 +74,21 @@ Webhooks are the source of truth for payment confirmation; the browser redirect 
 - Payments: transaction log + active-gateway summary
 - Settings: payment gateway toggle & default, bank transfer details, shipping threshold, site contact info
 
-## Moving to PostgreSQL
+## Deploying a live preview (Vercel + Neon)
 
-The schema (`prisma/schema.prisma`) deliberately avoids SQLite-incompatible features (no native enums, no `Decimal`, no scalar arrays — money is stored as `Int` kobo, enums are plain `String`). To switch:
+Vercel is the natural host for a Next.js app — it deploys straight from this GitHub repo and redeploys automatically on every push. It has no persistent disk, so the database lives on Neon (free Postgres) instead.
 
-1. Change `datasource db { provider = "sqlite" ... }` to `provider = "postgresql"`.
-2. Point `DATABASE_URL` at a real Postgres instance (e.g. Neon, Supabase, RDS).
-3. `npx prisma db push` (or set up proper migrations with `prisma migrate`).
+1. **Database** — at [neon.tech](https://neon.tech), sign in with GitHub → **New Project**. Copy the **pooled connection string** it gives you — that's your `DATABASE_URL`.
+2. **Seed it** — locally, put that connection string in `.env` as `DATABASE_URL`, then run `npm run db:push && npm run db:seed`. This creates the schema and sample data directly on the live database (Neon accepts connections from anywhere, so this works from your machine).
+3. **Deploy** — at [vercel.com](https://vercel.com), sign in with GitHub → **Add New… → Project** → import `Peemkay/nastech`. Framework preset auto-detects as Next.js — no build config needed. Before clicking Deploy, add these **Environment Variables**:
+   - `DATABASE_URL` — the same Neon connection string from step 1
+   - `AUTH_SECRET` — generate with `npx auth secret` (or `openssl rand -base64 32`)
+   - Optionally `PAYSTACK_SECRET_KEY` / `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` / `FLUTTERWAVE_SECRET_KEY` / `NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY` / `FLUTTERWAVE_WEBHOOK_SECRET_HASH` if you want real card payments to work — bank transfer works without them
+4. **Deploy.** Vercel gives you a `https://nastech-*.vercel.app` URL. Visit it, log in at `/admin/login` with the seeded admin credentials above.
 
-No application code changes required.
+That's it — no `vercel.json`, no custom build command. `prisma generate` runs automatically via the `postinstall` script. Every subsequent `git push` to `main` redeploys automatically.
+
+**Tip:** Neon supports branching a dev database off your main one for local work, so you don't develop directly against the live data — see Neon's dashboard → **Branches**.
 
 ## Project structure
 

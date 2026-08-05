@@ -30,6 +30,16 @@ export function formatDate(d: Date | string) {
   return date.toLocaleDateString("en-NG", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+/**
+ * Resolves the public site origin for building payment callback/redirect URLs.
+ * Prefers NEXT_PUBLIC_SITE_URL (stable across preview URLs, custom domains),
+ * but falls back to the incoming request's own origin so this works out of
+ * the box on a fresh Vercel deploy before that env var is even set.
+ */
+export function getSiteUrl(req: { nextUrl: { origin: string } }) {
+  return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || req.nextUrl.origin;
+}
+
 export function formatDateTime(d: Date | string) {
   const date = typeof d === "string" ? new Date(d) : d;
   return date.toLocaleString("en-NG", {
