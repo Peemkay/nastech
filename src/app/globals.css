@@ -1,0 +1,134 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* NASTECH Gadgets brand theme — sampled from the logo mark            */
+/* (vivid azure blue ring + chrome/silver "G", forced light theme)     */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --background: #f7f9fc;
+  --surface: #ffffff;
+  --foreground: #0b1526;
+  --muted: #5b6472;
+  --border: #e4e8ef;
+
+  /* brand blue ramp (sampled: #0048C0 → #0078F0 → #0090FC) */
+  --brand-50: #eef6ff;
+  --brand-100: #dbebff;
+  --brand-200: #b3d8ff;
+  --brand-300: #7ebeff;
+  --brand-400: #3d9dff;
+  --brand-500: #0f83fb;
+  --brand-600: #0078f0;
+  --brand-700: #0060d8;
+  --brand-800: #0048c0;
+  --brand-900: #003a99;
+
+  /* chrome / silver ramp (sampled from the "G") */
+  --silver-100: #f4f5f6;
+  --silver-200: #e4e6e9;
+  --silver-300: #cccccc;
+  --silver-400: #b4b4b4;
+  --silver-500: #9c9c9c;
+  --silver-600: #848484;
+  --silver-700: #666666;
+
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+
+  --radius: 1rem;
+}
+
+/* Force light theme site-wide, regardless of OS preference */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+
+  --color-silver-100: var(--silver-100);
+  --color-silver-200: var(--silver-200);
+  --color-silver-300: var(--silver-300);
+  --color-silver-400: var(--silver-400);
+  --color-silver-500: var(--silver-500);
+  --color-silver-600: var(--silver-600);
+  --color-silver-700: var(--silver-700);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--brand-200);
+  color: var(--brand-900);
+}
+
+/* thin, brand-tinted scrollbar */
+* {
+  scrollbar-color: var(--silver-400) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--silver-400);
+  border-radius: 999px;
+}
+
+.brand-gradient {
+  background-image: linear-gradient(135deg, var(--brand-600), var(--brand-800));
+}
+
+.container-page {
+  max-width: 84rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-page {
+    padding-inline: 1.5rem;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease both;
+}

@@ -1,0 +1,316 @@
+// NASTECH Gadgets — data model
+//
+// Dev uses SQLite (zero-install, file based). It is intentionally kept
+// Postgres-compatible: no native enums, no Decimal, no scalar lists — only
+// String / Int / Boolean / DateTime / Json, which behave identically on both
+// connectors. To move to Postgres for production, change `provider` below to
+// "postgresql" and point `url` at a real DATABASE_URL — nothing else changes.
+// Money is stored as Int in kobo (₦1 = 100 kobo) to avoid float rounding.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Identity ----------
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         String   @default("CUSTOMER") // CUSTOMER | ADMIN | SUPERADMIN
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  addresses    Address[]
+  sellRequests SellRequest[]
+  orders       Order[]
+  reviews      Review[]
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String   @default("Home") // Home | Office | Other
+  fullName  String
+  phone     String
+  line1     String
+  line2     String?
+  city      String
+  state     String // Nigerian state
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ---------- Device catalog / quote engine ----------
+
+model DeviceCategory {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  icon      String   @default("smartphone")
+  sortOrder Int      @default(0)
+
+  brands            Brand[]
+  conditionQuestions ConditionQuestion[]
+  products          Product[]
+  sellRequests      SellRequest[]
+}
+
+model Brand {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   DeviceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String
+  slug       String
+  logoUrl    String?
+
+  models   DeviceModel[]
+  products Product[]
+
+  @@unique([categoryId, slug])
+}
+
+model DeviceModel {
+  id              String   @id @default(cuid())
+  brandId         String
+  brand           Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name            String
+  slug            String
+  image           String?
+  releaseYear     Int?
+  baseValueKobo   Int // best-condition, top-storage trade-in value
+  storageOptions  Json // e.g. ["64GB","128GB","256GB"] — always supplied by application code (SQLite rejects JSON column defaults)
+
+  sellRequests SellRequest[]
+  products     Product[]
+
+  @@unique([brandId, slug])
+}
+
+model ConditionQuestion {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   DeviceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  question   String
+  sortOrder  Int      @default(0)
+
+  options ConditionOption[]
+}
+
+model ConditionOption {
+  id             String   @id @default(cuid())
+  questionId     String
+  question       ConditionQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  label          String
+  deductionBps   Int      @default(0) // deduction in basis points (1/100 of a percent) of base value
+  sortOrder      Int      @default(0)
+}
+
+// ---------- Sell / trade-in ----------
+
+model SellRequest {
+  id         String   @id @default(cuid())
+  code       String   @unique // NAS-SEL-000123
+
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+
+  categoryId String
+  category   DeviceCategory @relation(fields: [categoryId], references: [id])
+  modelId    String
+  model      DeviceModel    @relation(fields: [modelId], references: [id])
+  storage    String?
+
+  answers        Json // questionId -> optionId — always supplied by application code
+  quotedKobo     Int
+  finalKobo      Int?
+
+  status String @default("QUOTE_GENERATED")
+  // QUOTE_GENERATED | PICKUP_SCHEDULED | PICKED_UP | INSPECTING |
+  // OFFER_REVISED | ACCEPTED | REJECTED_BY_CUSTOMER | PAID_OUT | CANCELLED
+
+  contactName  String
+  contactPhone String
+  contactEmail String
+
+  pickupLine1  String?
+  pickupLine2  String?
+  pickupCity   String?
+  pickupState  String?
+  pickupDate   DateTime?
+  pickupSlot   String?
+
+  payoutBankName      String?
+  payoutAccountNumber String?
+  payoutAccountName   String?
+
+  adminNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  statusEvents SellRequestStatusEvent[]
+}
+
+model SellRequestStatusEvent {
+  id            String      @id @default(cuid())
+  sellRequestId String
+  sellRequest   SellRequest @relation(fields: [sellRequestId], references: [id], onDelete: Cascade)
+  status        String
+  note          String?
+  createdAt     DateTime    @default(now())
+}
+
+// ---------- Refurbished store ----------
+
+model Product {
+  id              String   @id @default(cuid())
+  sku             String   @unique
+  name            String
+  slug            String   @unique
+  categoryId      String
+  category        DeviceCategory @relation(fields: [categoryId], references: [id])
+  brandId         String
+  brand           Brand    @relation(fields: [brandId], references: [id])
+  modelId         String?
+  model           DeviceModel? @relation(fields: [modelId], references: [id])
+
+  grade           String   @default("GOOD") // LIKE_NEW | GOOD | FAIR
+  storage         String?
+  color           String?
+
+  priceKobo          Int
+  compareAtPriceKobo Int?
+  stock              Int    @default(0)
+
+  images      Json // always supplied by application code (SQLite rejects JSON column defaults)
+  description String  @default("")
+  specs       Json // always supplied by application code
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+  reviews    Review[]
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+// ---------- Orders / payments ----------
+
+model Order {
+  id     String @id @default(cuid())
+  code   String @unique // NAS-ORD-000123
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  subtotalKobo    Int
+  shippingFeeKobo Int    @default(0)
+  totalKobo       Int
+  currency        String @default("NGN")
+
+  status String @default("PENDING_PAYMENT")
+  // PENDING_PAYMENT | PAID | PROCESSING | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+
+  paymentMethod String? // PAYSTACK | FLUTTERWAVE | BANK_TRANSFER
+  paymentStatus String  @default("PENDING")
+  // PENDING | AWAITING_VERIFICATION | PAID | FAILED | REFUNDED
+
+  contactEmail String
+  contactPhone String
+
+  shipFullName String
+  shipPhone    String
+  shipLine1    String
+  shipLine2    String?
+  shipCity     String
+  shipState    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items        OrderItem[]
+  payments     Payment[]
+  statusEvents OrderStatusEvent[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  name      String
+  image     String?
+  priceKobo Int
+  quantity  Int
+}
+
+model OrderStatusEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider   String // PAYSTACK | FLUTTERWAVE | BANK_TRANSFER
+  reference  String   @unique
+  amountKobo Int
+  currency   String   @default("NGN")
+  status     String   @default("INITIATED") // INITIATED | SUCCESS | FAILED
+  rawPayload Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model WebhookLog {
+  id         String   @id @default(cuid())
+  provider   String // PAYSTACK | FLUTTERWAVE
+  eventType  String?
+  reference  String?
+  payload    Json
+  verified   Boolean  @default(false)
+  processed  Boolean  @default(false)
+  receivedAt DateTime @default(now())
+}
+
+// ---------- Settings (singleton) ----------
+
+model Settings {
+  id                     String  @id @default("singleton")
+  siteName               String  @default("NASTECH Gadgets")
+  supportPhone           String  @default("+234 800 000 0000")
+  supportEmail           String  @default("support@nastech.ng")
+  activeGateways         Json // always supplied by application code — see lib/settings.ts getSettings()
+  defaultGateway         String  @default("PAYSTACK")
+  bankName               String  @default("NASTECH Gadgets Ltd — Providus Bank")
+  bankAccountNumber      String  @default("0000000000")
+  bankAccountName        String  @default("NASTECH Gadgets Limited")
+  freeShippingThresholdKobo Int  @default(5000000)
+  updatedAt              DateTime @updatedAt
+}
