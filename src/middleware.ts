@@ -1,5 +1,11 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
+import { authConfig } from "@/lib/auth.config";
+
+// Edge-safe NextAuth instance — built from the provider-less, Prisma-free
+// authConfig only, so this file's Edge Function bundle stays well under
+// Vercel's 1 MB middleware size limit. Do NOT import "@/lib/auth" here.
+const { auth } = NextAuth(authConfig);
 
 const ADMIN_ROLES = ["ADMIN", "SUPERADMIN"];
 
