@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { Container } from "@/components/ui/Misc";
 import { SellWizard } from "@/components/sell/SellWizard";
 
@@ -29,6 +30,7 @@ export default async function SellWizardPage({
   if (!model) notFound();
 
   const storageOptions = Array.isArray(model.storageOptions) ? (model.storageOptions as string[]) : [];
+  const session = await auth();
 
   return (
     <Container className="py-14">
@@ -41,6 +43,7 @@ export default async function SellWizardPage({
           question: q.question,
           options: q.options.map((o) => ({ id: o.id, label: o.label, deductionBps: o.deductionBps })),
         }))}
+        isAuthenticated={!!session}
       />
     </Container>
   );

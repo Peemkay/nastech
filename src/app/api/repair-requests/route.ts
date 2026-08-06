@@ -35,6 +35,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid request", issues: parsed.error.flatten() }, { status: 400 });
   const data = parsed.data;
 
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Please verify your phone number to continue" }, { status: 401 });
+
   if (data.serviceType === "PICKUP") {
     const region = await prisma.serviceRegion.findUnique({ where: { state: data.pickupState! } });
     const regionEnabled = region ? region.enabled : isDefaultEnabled(data.pickupState!);
@@ -48,7 +51,6 @@ export async function POST(req: NextRequest) {
 
   const estimatedKobo = issues.reduce((sum, i) => sum + i.basePriceKobo, 0);
 
-  const session = await auth();
   const count = await prisma.repairRequest.count();
   const code = trackingCode("REP", count + 1);
 

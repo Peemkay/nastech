@@ -19,20 +19,36 @@ datasource db {
 // ---------- Identity ----------
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  phone        String?
-  passwordHash String
-  role         String   @default("CUSTOMER") // CUSTOMER | ADMIN | SUPERADMIN
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  phone         String?  @unique // normalized +234XXXXXXXXXX — see lib/phone.ts
+  phoneVerified Boolean  @default(false)
+  passwordHash  String
+  role          String   @default("CUSTOMER") // CUSTOMER | ADMIN | SUPERADMIN
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   addresses      Address[]
   sellRequests   SellRequest[]
   orders         Order[]
   reviews        Review[]
   repairRequests RepairRequest[]
+}
+
+// A registration that hasn't completed OTP verification yet — no real User
+// row exists until the code is confirmed. Self-cleans on verify or expiry.
+model PendingRegistration {
+  id            String   @id @default(cuid())
+  name          String
+  email         String
+  phone         String   @unique // normalized +234XXXXXXXXXX
+  passwordPlain String // held only until OTP verification hands off to signIn(), then the row is deleted
+  otpCodeHash   String
+  otpExpiresAt  DateTime
+  attempts      Int      @default(0)
+  lastSentAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
 }
 
 model Address {

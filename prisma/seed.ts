@@ -246,22 +246,27 @@ async function main() {
     create: { id: "singleton", activeGateways: ["PAYSTACK", "FLUTTERWAVE", "BANK_TRANSFER"] },
   });
 
-  const passwordHash = await bcrypt.hash("Admin@12345", 10);
-  await prisma.user.upsert({
-    where: { email: "admin@nastech.ng" },
-    update: {},
-    create: { name: "NASTECH Super Admin", email: "admin@nastech.ng", passwordHash, role: "SUPERADMIN" },
-  });
-  await prisma.user.upsert({
-    where: { email: "ops@nastech.ng" },
-    update: {},
-    create: { name: "NASTECH Ops Admin", email: "ops@nastech.ng", passwordHash: await bcrypt.hash("Ops@12345", 10), role: "ADMIN" },
-  });
-  const customer = await prisma.user.upsert({
-    where: { email: "chidinma@example.com" },
-    update: {},
-    create: { name: "Chidinma Okafor", email: "chidinma@example.com", phone: "08012345678", passwordHash: await bcrypt.hash("Customer@123", 10), role: "CUSTOMER" },
-  });
+  // No demo users are seeded — real deployments must never ship a known
+  // password. If INITIAL_ADMIN_EMAIL / INITIAL_ADMIN_PASSWORD are set and no
+  // admin exists yet, create the first one (mirrors lib/bootstrap-admin.ts,
+  // which also self-heals this on first /admin/login visit if this step is skipped).
+  const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL;
+  const initialAdminPassword = process.env.INITIAL_ADMIN_PASSWORD;
+  if (initialAdminEmail && initialAdminPassword) {
+    const existingAdmin = await prisma.user.findFirst({ where: { role: { in: ["ADMIN", "SUPERADMIN"] } } });
+    if (!existingAdmin) {
+      await prisma.user.create({
+        data: {
+          name: process.env.INITIAL_ADMIN_NAME || "Admin",
+          email: initialAdminEmail.toLowerCase(),
+          passwordHash: await bcrypt.hash(initialAdminPassword, 10),
+          role: "SUPERADMIN",
+          phoneVerified: true,
+        },
+      });
+      console.log("👤 Bootstrap admin created:", initialAdminEmail);
+    }
+  }
 
   // Serviceable regions — only FCT (Abuja) is enabled by default; admin turns others on later.
   for (const state of ALL_STATES) {
@@ -389,24 +394,9 @@ async function main() {
     }
   }
 
-  // A couple of sample reviews for demo purposes (guarded so re-running the seed doesn't duplicate them).
-  if (createdProducts.length > 0) {
-    const existingReviews = await prisma.review.count({ where: { userId: customer.id } });
-    if (existingReviews === 0) {
-      await prisma.review.createMany({
-        data: [
-          { productId: createdProducts[0].id, userId: customer.id, rating: 5, comment: "Arrived in great condition, exactly as described. Fast delivery to Lagos!" },
-          { productId: createdProducts[Math.min(2, createdProducts.length - 1)].id, userId: customer.id, rating: 4, comment: "Very good value for money. Minor scuff on the back but works perfectly." },
-        ],
-      });
-    }
-  }
-
   const repairIssueCount = await prisma.repairIssue.count();
   console.log(`✅ Seeded ${CATEGORIES.length} categories, ${createdProducts.length} products, ${repairIssueCount} repair services, ${ALL_STATES.length} regions (FCT enabled).`);
-  console.log("👤 Admin login:      admin@nastech.ng / Admin@12345");
-  console.log("👤 Ops admin login:  ops@nastech.ng / Ops@12345");
-  console.log("👤 Customer login:   chidinma@example.com / Customer@123");
+  console.log("No demo users seeded. Set INITIAL_ADMIN_EMAIL / INITIAL_ADMIN_PASSWORD to bootstrap the first admin, or register + verify a real account from the site.");
 }
 
 main()

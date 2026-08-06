@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { ShieldCheck } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateProfileAction } from "@/lib/actions/account";
-import { Card, CardBody } from "@/components/ui/Card";
+import { formatPhoneDisplay } from "@/lib/phone";
+import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Label, Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { ChangePasswordForm } from "@/components/ChangePasswordForm";
 
 export const metadata: Metadata = { title: "My Profile" };
 
@@ -14,9 +17,11 @@ export default async function AccountProfilePage() {
   if (!user) return null;
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-extrabold text-foreground">Profile</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-extrabold text-foreground">Profile</h1>
+
       <Card className="max-w-lg">
+        <CardHeader><p className="text-sm font-semibold text-foreground">Account details</p></CardHeader>
         <CardBody>
           <form action={updateProfileAction}>
             <div className="mb-4">
@@ -30,10 +35,22 @@ export default async function AccountProfilePage() {
             </div>
             <div className="mb-5">
               <Label>Phone number</Label>
-              <Input name="phone" defaultValue={user.phone ?? ""} placeholder="080X XXX XXXX" />
+              <Input value={user.phone ? formatPhoneDisplay(user.phone) : "Not set"} disabled />
+              {user.phoneVerified && (
+                <p className="mt-1 flex items-center gap-1 text-xs text-green-700">
+                  <ShieldCheck className="size-3.5" /> Verified
+                </p>
+              )}
             </div>
             <Button type="submit">Save changes</Button>
           </form>
+        </CardBody>
+      </Card>
+
+      <Card className="max-w-lg">
+        <CardHeader><p className="text-sm font-semibold text-foreground">Change password</p></CardHeader>
+        <CardBody>
+          <ChangePasswordForm />
         </CardBody>
       </Card>
     </div>

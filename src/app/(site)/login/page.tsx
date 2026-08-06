@@ -26,19 +26,19 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
           {sp.error && (
             <p className="mt-4 flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-sm text-danger">
-              <AlertCircle className="size-4 shrink-0" /> Incorrect email or password. Please try again.
+              <AlertCircle className="size-4 shrink-0" /> Incorrect email/phone or password. Please try again.
             </p>
           )}
 
           <form action={loginAction} className="mt-6">
             <input type="hidden" name="callbackUrl" value={callbackUrl} />
             <div className="mb-4">
-              <Label required>Email address</Label>
-              <Input type="email" name="email" required placeholder="you@example.com" />
+              <Label required>Email or phone number</Label>
+              <Input name="identifier" required placeholder="Email or phone number" />
             </div>
             <div className="mb-2">
               <Label required>Password</Label>
-              <Input type="password" name="password" required placeholder="••••••••" />
+              <Input type="password" name="password" required placeholder="Password" />
             </div>
             <Button type="submit" fullWidth size="lg" className="mt-4">
               Log In

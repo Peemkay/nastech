@@ -4,13 +4,14 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CalendarDays, ChevronLeft, Clock, MapPin, Store, Sun, Sunrise, Sunset, Truck, Wrench } from "lucide-react";
 import { formatNaira } from "@/lib/utils";
-import { DEFAULT_ENABLED_STATE, REPAIR_SERVICE_TYPE_LABELS, type RepairServiceType } from "@/lib/constants";
+import { DEFAULT_ENABLED_STATE, REPAIR_SERVICE_TYPE_LABELS, formatStateName, type RepairServiceType } from "@/lib/constants";
 import { StepIndicator } from "@/components/sell/StepIndicator";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Label, Input, Select, Textarea } from "@/components/ui/Field";
 import { LocationSelect } from "@/components/LocationSelect";
 import { DeviceIcon } from "@/components/DeviceIcon";
+import { InlineAuthGate } from "@/components/InlineAuthGate";
 import { cn } from "@/lib/utils";
 
 type Issue = { id: string; name: string; type: string; basePriceKobo: number; durationHint: string; description: string };
@@ -19,6 +20,7 @@ type Props = {
   category: { id: string; name: string; slug: string; icon: string };
   brands: Brand[];
   issues: Issue[];
+  isAuthenticated: boolean;
 };
 
 const SLOTS = [
@@ -27,11 +29,15 @@ const SLOTS = [
   { id: "Evening (4pm - 7pm)", label: "Evening", time: "4pm – 7pm", icon: Sunset },
 ];
 
-const STEPS = ["Device", "Issues", "Service", "Review"];
-
-export function RepairWizard({ category, brands, issues }: Props) {
+export function RepairWizard({ category, brands, issues, isAuthenticated }: Props) {
   const router = useRouter();
+  const needsVerification = !isAuthenticated;
+  const stepKeys = ["device", "issues", ...(needsVerification ? (["verify"] as const) : []), "service", "review"] as const;
+  const STEPS = ["Device", "Issues", ...(needsVerification ? ["Verify"] : []), "Service", "Review"];
+
   const [stepIndex, setStepIndex] = useState(0);
+  const stepKey = stepKeys[stepIndex];
+  const [verified, setVerified] = useState(isAuthenticated);
   const today = new Date().toISOString().slice(0, 10);
 
   const [brandId, setBrandId] = useState(brands[0]?.id ?? "");
@@ -61,10 +67,11 @@ export function RepairWizard({ category, brands, issues }: Props) {
     setSelectedIssueIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
   }
 
-  function stepValid(i: number) {
-    if (i === 0) return deviceLabel.trim().length > 1;
-    if (i === 1) return selectedIssueIds.length > 0;
-    if (i === 2) {
+  function stepValid(key: string) {
+    if (key === "device") return deviceLabel.trim().length > 1;
+    if (key === "issues") return selectedIssueIds.length > 0;
+    if (key === "verify") return verified;
+    if (key === "service") {
       const contactOk = /\S+@\S+\.\S+/.test(form.contactEmail) && form.contactPhone.trim().length > 6 && form.contactName.trim().length > 1;
       if (!contactOk) return false;
       if (serviceType === "DROP_OFF") return true;
@@ -75,7 +82,7 @@ export function RepairWizard({ category, brands, issues }: Props) {
 
   function goNext() {
     setError(null);
-    if (!stepValid(stepIndex)) {
+    if (!stepValid(stepKey)) {
       setError("Please complete this step before continuing.");
       return;
     }
@@ -129,7 +136,7 @@ export function RepairWizard({ category, brands, issues }: Props) {
                 <p className="text-sm font-semibold text-foreground">{category.name} repair</p>
               </div>
 
-              {stepIndex === 0 && (
+              {stepKey === "device" && (
                 <div className="space-y-4">
                   {brands.length > 0 && (
                     <div>
@@ -151,7 +158,7 @@ export function RepairWizard({ category, brands, issues }: Props) {
                 </div>
               )}
 
-              {stepIndex === 1 && (
+              {stepKey === "issues" && (
                 <div>
                   <p className="mb-4 text-sm font-semibold text-foreground">What needs fixing? (select all that apply)</p>
                   {issues.length === 0 ? (
@@ -183,7 +190,21 @@ export function RepairWizard({ category, brands, issues }: Props) {
                 </div>
               )}
 
-              {stepIndex === 2 && (
+              {stepKey === "verify" && (
+                <div>
+                  <p className="mb-4 text-sm font-semibold text-foreground">Verify your phone number to continue</p>
+                  <InlineAuthGate
+                    defaultMode="register"
+                    onSuccess={() => {
+                      setVerified(true);
+                      setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
+                </div>
+              )}
+
+              {stepKey === "service" && (
                 <div>
                   <p className="mb-3 text-sm font-semibold text-foreground">How should we get your device?</p>
                   <div className="mb-5 grid grid-cols-2 gap-3">
@@ -266,7 +287,7 @@ export function RepairWizard({ category, brands, issues }: Props) {
                 </div>
               )}
 
-              {stepIndex === 3 && (
+              {stepKey === "review" && (
                 <div className="space-y-5">
                   <div className="rounded-xl bg-silver-100/60 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted">Device</p>
@@ -291,7 +312,7 @@ export function RepairWizard({ category, brands, issues }: Props) {
                       <>
                         <p className="mt-1 flex items-start gap-1.5 text-sm text-foreground">
                           <MapPin className="mt-0.5 size-3.5 shrink-0 text-brand-600" />
-                          {form.pickupLine1}, {form.pickupCity}, {form.pickupState}
+                          {form.pickupLine1}, {form.pickupLga && `${form.pickupLga}, `}{form.pickupCity}, {formatStateName(form.pickupState)}
                         </p>
                         <p className="mt-1 flex items-center gap-1.5 text-sm text-foreground">
                           <CalendarDays className="size-3.5 shrink-0 text-brand-600" /> {form.pickupDate} · {form.pickupSlot}
@@ -312,11 +333,11 @@ export function RepairWizard({ category, brands, issues }: Props) {
                 <Button variant="ghost" onClick={goBack} disabled={stepIndex === 0} icon={<ChevronLeft className="size-4" />}>
                   Back
                 </Button>
-                {stepIndex === STEPS.length - 1 ? (
+                {stepKey === "review" ? (
                   <Button onClick={handleSubmit} loading={submitting} icon={<Wrench className="size-4" />}>
                     Book Repair
                   </Button>
-                ) : (
+                ) : stepKey === "verify" ? null : (
                   <Button onClick={goNext}>Continue</Button>
                 )}
               </div>

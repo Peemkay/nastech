@@ -31,6 +31,9 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
 
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Please verify your phone number to continue" }, { status: 401 });
+
   const region = await prisma.serviceRegion.findUnique({ where: { state: data.pickupState } });
   const regionEnabled = region ? region.enabled : isDefaultEnabled(data.pickupState);
   if (!regionEnabled) return NextResponse.json({ error: "We don't offer pickup in this state yet" }, { status: 400 });
@@ -60,7 +63,6 @@ export async function POST(req: NextRequest) {
 
   const quotedKobo = computeQuoteKobo(model.baseValueKobo, selectedOptions);
 
-  const session = await auth();
   const count = await prisma.sellRequest.count();
   const code = trackingCode("SEL", count + 1);
 

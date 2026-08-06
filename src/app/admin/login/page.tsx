@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AlertCircle, ShieldCheck } from "lucide-react";
 import { adminLoginAction } from "@/lib/actions/auth";
+import { ensureBootstrapAdmin } from "@/lib/bootstrap-admin";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Label, Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
@@ -10,11 +11,12 @@ import { Container } from "@/components/ui/Misc";
 export const metadata: Metadata = { title: "Admin Login" };
 
 const ERROR_MESSAGES: Record<string, string> = {
-  "1": "Incorrect email or password.",
+  "1": "Incorrect email/phone or password.",
   "2": "This account does not have admin access.",
 };
 
 export default async function AdminLoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  await ensureBootstrapAdmin();
   const sp = await searchParams;
 
   return (
@@ -41,12 +43,12 @@ export default async function AdminLoginPage({ searchParams }: { searchParams: P
 
             <form action={adminLoginAction} className="mt-6">
               <div className="mb-4">
-                <Label required>Email address</Label>
-                <Input type="email" name="email" required placeholder="email" />
+                <Label required>Email or phone number</Label>
+                <Input name="identifier" required placeholder="Email or phone number" />
               </div>
               <div className="mb-2">
                 <Label required>Password</Label>
-                <Input type="password" name="password" required placeholder="••••••••" />
+                <Input type="password" name="password" required placeholder="Password" />
               </div>
               <Button type="submit" fullWidth size="lg" className="mt-4">
                 Sign In

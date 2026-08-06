@@ -12,6 +12,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Label, Input } from "@/components/ui/Field";
 import { DeviceIcon } from "@/components/DeviceIcon";
 import { LocationSelect } from "@/components/LocationSelect";
+import { InlineAuthGate } from "@/components/InlineAuthGate";
 import { cn } from "@/lib/utils";
 
 type Question = { id: string; question: string; options: { id: string; label: string; deductionBps: number }[] };
@@ -20,6 +21,7 @@ type Props = {
   brand: { id: string; name: string; slug: string };
   model: { id: string; name: string; slug: string; baseValueKobo: number; storageOptions: string[] };
   questions: Question[];
+  isAuthenticated: boolean;
 };
 
 const SLOTS = [
@@ -28,16 +30,29 @@ const SLOTS = [
   { id: "Evening (4pm - 7pm)", label: "Evening", time: "4pm – 7pm", icon: Sunset },
 ];
 
-export function SellWizard({ category, brand, model, questions }: Props) {
+export function SellWizard({ category, brand, model, questions, isAuthenticated }: Props) {
   const router = useRouter();
   const hasStorage = model.storageOptions.length > 0;
-  const stepKeys: readonly ("storage" | "condition" | "pickup" | "review")[] = hasStorage
-    ? (["storage", "condition", "pickup", "review"] as const)
-    : (["condition", "pickup", "review"] as const);
-  const stepLabels: string[] = hasStorage ? ["Storage", "Condition", "Pickup", "Review"] : ["Condition", "Pickup", "Review"];
+  const needsVerification = !isAuthenticated;
+
+  const stepKeys = [
+    ...(hasStorage ? (["storage"] as const) : []),
+    "condition" as const,
+    ...(needsVerification ? (["verify"] as const) : []),
+    "pickup" as const,
+    "review" as const,
+  ];
+  const stepLabels = [
+    ...(hasStorage ? ["Storage"] : []),
+    "Condition",
+    ...(needsVerification ? ["Verify"] : []),
+    "Pickup",
+    "Review",
+  ];
 
   const [stepIndex, setStepIndex] = useState(0);
   const stepKey = stepKeys[stepIndex];
+  const [verified, setVerified] = useState(isAuthenticated);
 
   const [storage, setStorage] = useState(model.storageOptions[0] ?? "");
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -71,6 +86,7 @@ export function SellWizard({ category, brand, model, questions }: Props) {
   function stepValid(key: string) {
     if (key === "storage") return !!storage;
     if (key === "condition") return allAnswered;
+    if (key === "verify") return verified;
     if (key === "pickup") {
       return (
         form.contactName.trim().length > 1 &&
@@ -197,6 +213,20 @@ export function SellWizard({ category, brand, model, questions }: Props) {
                 </div>
               )}
 
+              {stepKey === "verify" && (
+                <div>
+                  <p className="mb-4 text-sm font-semibold text-foreground">Verify your phone number to continue</p>
+                  <InlineAuthGate
+                    defaultMode="register"
+                    onSuccess={() => {
+                      setVerified(true);
+                      setStepIndex((i) => Math.min(i + 1, stepKeys.length - 1));
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
+                </div>
+              )}
+
               {stepKey === "pickup" && (
                 <div>
                   <p className="mb-4 text-sm font-semibold text-foreground">Contact & pickup details</p>
@@ -312,7 +342,7 @@ export function SellWizard({ category, brand, model, questions }: Props) {
                   <Button onClick={handleSubmit} loading={submitting}>
                     Confirm & Schedule Pickup
                   </Button>
-                ) : (
+                ) : stepKey === "verify" ? null : (
                   <Button onClick={goNext}>Continue</Button>
                 )}
               </div>
