@@ -42,7 +42,7 @@ export default async function AdminLoginPage({ searchParams }: { searchParams: P
             <form action={adminLoginAction} className="mt-6">
               <div className="mb-4">
                 <Label required>Email address</Label>
-                <Input type="email" name="email" required placeholder="admin@nastech.ng" />
+                <Input type="email" name="email" required placeholder="email" />
               </div>
               <div className="mb-2">
                 <Label required>Password</Label>

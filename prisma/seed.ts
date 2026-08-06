@@ -1,9 +1,51 @@
-/* Seed data for local development — realistic Nigerian refurbished-device catalog. */
+/* Seed data — realistic Nigerian device catalog, repair services & regions. */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 const naira = (n: number) => n * 100; // kobo
+
+const ALL_STATES = [
+  "Abia", "Adamawa", "AkwaIbom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
+  "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT", "Gombe",
+  "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos",
+  "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto",
+  "Taraba", "Yobe", "Zamfara",
+];
+
+// Repair catalog varies by device type — mobile-ish devices, laptops, and small accessories each get a fitting set.
+const REPAIR_ISSUES_MOBILE = [
+  { name: "Screen Replacement", type: "HARDWARE", price: 45000, duration: "Same day" },
+  { name: "Battery Replacement", type: "HARDWARE", price: 15000, duration: "Same day" },
+  { name: "Charging Port Repair", type: "HARDWARE", price: 12000, duration: "Same day" },
+  { name: "Camera Repair", type: "HARDWARE", price: 18000, duration: "Same day" },
+  { name: "Water Damage Treatment", type: "HARDWARE", price: 20000, duration: "24-48 hours" },
+  { name: "Software / OS Issue", type: "SOFTWARE", price: 5000, duration: "1-2 hours" },
+  { name: "Virus / Malware Removal", type: "SOFTWARE", price: 5000, duration: "1-2 hours" },
+];
+const REPAIR_ISSUES_LAPTOP = [
+  { name: "Screen Replacement", type: "HARDWARE", price: 45000, duration: "Same day" },
+  { name: "Battery Replacement", type: "HARDWARE", price: 25000, duration: "Same day" },
+  { name: "Keyboard Replacement", type: "HARDWARE", price: 15000, duration: "Same day" },
+  { name: "Motherboard Repair", type: "HARDWARE", price: 30000, duration: "3-5 days" },
+  { name: "Software / OS Reinstall", type: "SOFTWARE", price: 8000, duration: "Same day" },
+  { name: "Virus / Malware Removal", type: "SOFTWARE", price: 6000, duration: "1-2 hours" },
+  { name: "Data Recovery", type: "SOFTWARE", price: 18000, duration: "1-3 days" },
+];
+const REPAIR_ISSUES_ACCESSORY = [
+  { name: "Speaker / Audio Repair", type: "HARDWARE", price: 10000, duration: "Same day" },
+  { name: "Button / Controller Repair", type: "HARDWARE", price: 8000, duration: "Same day" },
+  { name: "Battery / Charging Issue", type: "HARDWARE", price: 9000, duration: "Same day" },
+  { name: "Software Reset / Update", type: "SOFTWARE", price: 4000, duration: "1 hour" },
+];
+const REPAIR_ISSUES_BY_CATEGORY: Record<string, typeof REPAIR_ISSUES_MOBILE> = {
+  smartphones: REPAIR_ISSUES_MOBILE,
+  tablets: REPAIR_ISSUES_MOBILE,
+  smartwatches: REPAIR_ISSUES_ACCESSORY,
+  laptops: REPAIR_ISSUES_LAPTOP,
+  audio: REPAIR_ISSUES_ACCESSORY,
+  consoles: REPAIR_ISSUES_ACCESSORY,
+};
 
 const CONDITION_QUESTIONS = [
   {
@@ -221,6 +263,15 @@ async function main() {
     create: { name: "Chidinma Okafor", email: "chidinma@example.com", phone: "08012345678", passwordHash: await bcrypt.hash("Customer@123", 10), role: "CUSTOMER" },
   });
 
+  // Serviceable regions — only FCT (Abuja) is enabled by default; admin turns others on later.
+  for (const state of ALL_STATES) {
+    await prisma.serviceRegion.upsert({
+      where: { state },
+      update: {},
+      create: { state, enabled: state === "FCT" },
+    });
+  }
+
   const createdProducts: { id: string; slug: string }[] = [];
 
   for (const [ci, cat] of CATEGORIES.entries()) {
@@ -229,6 +280,23 @@ async function main() {
       update: { name: cat.name, icon: cat.icon, sortOrder: ci },
       create: { slug: cat.slug, name: cat.name, icon: cat.icon, sortOrder: ci },
     });
+
+    const repairIssues = REPAIR_ISSUES_BY_CATEGORY[cat.slug] ?? REPAIR_ISSUES_ACCESSORY;
+    for (const [ri, issue] of repairIssues.entries()) {
+      const existing = await prisma.repairIssue.findFirst({ where: { categoryId: category.id, name: issue.name } });
+      if (!existing) {
+        await prisma.repairIssue.create({
+          data: {
+            categoryId: category.id,
+            name: issue.name,
+            type: issue.type,
+            basePriceKobo: naira(issue.price),
+            durationHint: issue.duration,
+            sortOrder: ri,
+          },
+        });
+      }
+    }
 
     for (const q of CONDITION_QUESTIONS) {
       const existing = await prisma.conditionQuestion.findFirst({ where: { categoryId: category.id, question: q.question } });
@@ -289,6 +357,34 @@ async function main() {
           });
           createdProducts.push(product);
         }
+
+        // Also list the flagship model of each brand as brand-new (sealed, full price, no discount).
+        if (mi === 0) {
+          const storage = m.storageOptions[m.storageOptions.length - 1];
+          const slug = `${m.slug}-new`;
+          const name = `${b.name} ${m.name}${storage ? ` ${storage}` : ""}`;
+          const product = await prisma.product.upsert({
+            where: { slug },
+            update: { name, priceKobo: m.baseValueKobo, stock: 3 },
+            create: {
+              sku: `NAS-${m.slug.toUpperCase()}-NEW`,
+              name,
+              slug,
+              categoryId: category.id,
+              brandId: brand.id,
+              modelId: model.id,
+              grade: "NEW",
+              storage,
+              priceKobo: m.baseValueKobo,
+              compareAtPriceKobo: null,
+              stock: 3,
+              description: `Brand-new, sealed ${b.name} ${m.name}, with full manufacturer warranty.`,
+              specs: { Brand: b.name, Model: m.name, ...(storage ? { Storage: storage } : {}), Condition: "Brand New", Warranty: "Manufacturer warranty" },
+              images: [],
+            },
+          });
+          createdProducts.push(product);
+        }
       }
     }
   }
@@ -306,7 +402,8 @@ async function main() {
     }
   }
 
-  console.log(`✅ Seeded ${CATEGORIES.length} categories, ${createdProducts.length} products.`);
+  const repairIssueCount = await prisma.repairIssue.count();
+  console.log(`✅ Seeded ${CATEGORIES.length} categories, ${createdProducts.length} products, ${repairIssueCount} repair services, ${ALL_STATES.length} regions (FCT enabled).`);
   console.log("👤 Admin login:      admin@nastech.ng / Admin@12345");
   console.log("👤 Ops admin login:  ops@nastech.ng / Ops@12345");
   console.log("👤 Customer login:   chidinma@example.com / Customer@123");

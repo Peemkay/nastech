@@ -1,19 +1,26 @@
 import { LinkButton } from "@/components/ui/Button";
 import { ShieldCheck, Truck, Wallet, Smartphone, Laptop, Watch, Sparkles } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 
-const STATS = [
-  { label: "Devices traded in", value: "50,000+" },
-  { label: "Cities covered", value: "20+" },
-  { label: "Avg. payout time", value: "< 24 hrs" },
-];
+export async function Hero() {
+  const [productCount, categoryCount] = await Promise.all([
+    prisma.product.count({ where: { isActive: true, stock: { gt: 0 } } }),
+    prisma.deviceCategory.count(),
+  ]);
 
-export function Hero() {
+  // Real, honest numbers only — no fabricated business metrics.
+  const stats = [
+    { label: "Devices in stock", value: String(productCount) },
+    { label: "Device categories", value: String(categoryCount) },
+    { label: "Warranty on refurbished", value: "12 mo" },
+  ];
+
   return (
     <section className="relative overflow-hidden bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,var(--brand-100),transparent)]">
       <div className="container-page grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-2 lg:py-28">
         <div className="animate-fade-in-up">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 ring-1 ring-inset ring-brand-200">
-            <Sparkles className="size-3.5" /> Nigeria&apos;s upgraded gadget marketplace
+            <Sparkles className="size-3.5" /> Buy · Sell · Trade-in · Repair — Abuja FCT
           </span>
           <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-[3.25rem] lg:leading-[1.05]">
             Sell your old gadget.
@@ -21,21 +28,21 @@ export function Hero() {
             <span className="text-brand-600">Get paid in Naira,</span> instantly.
           </h1>
           <p className="mt-5 max-w-lg text-base leading-relaxed text-muted sm:text-lg">
-            Get an instant, fair price for your phone, laptop, tablet or smartwatch — free doorstep pickup across
-            Nigeria and same-day payment via Paystack, Flutterwave or bank transfer. Or shop certified refurbished
-            devices at up to 40% off.
+            Get an instant, fair price for your phone, laptop, tablet or smartwatch — free doorstep pickup and
+            same-day payment via Paystack, Flutterwave or bank transfer. Or shop brand-new and certified refurbished
+            devices, and book a repair for hardware or software issues — all in one place.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <LinkButton href="/sell" size="lg">
               <Wallet className="size-4.5" /> Get Instant Quote
             </LinkButton>
             <LinkButton href="/shop" variant="secondary" size="lg">
-              Shop Refurbished
+              Shop Devices
             </LinkButton>
           </div>
 
           <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-border pt-6">
-            {STATS.map((s) => (
+            {stats.map((s) => (
               <div key={s.label}>
                 <dt className="text-xl font-extrabold text-foreground sm:text-2xl">{s.value}</dt>
                 <dd className="mt-0.5 text-xs text-muted">{s.label}</dd>

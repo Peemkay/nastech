@@ -39,7 +39,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
           priceNaira: String(product.priceKobo / 100),
           compareAtPriceNaira: product.compareAtPriceKobo ? String(product.compareAtPriceKobo / 100) : "",
           stock: String(product.stock),
-          imageUrl: images[0] ?? "",
+          images,
           description: product.description,
           specs: specs.length > 0 ? specs : [{ key: "", value: "" }],
           isActive: product.isActive,

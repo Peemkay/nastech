@@ -42,7 +42,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           </span>
         )}
         <span className="absolute top-3 right-3">
-          <Badge tone="brand">{GRADE_LABELS[product.grade as ProductGrade] ?? product.grade}</Badge>
+          <Badge tone={product.grade === "NEW" ? "success" : "brand"}>{GRADE_LABELS[product.grade as ProductGrade] ?? product.grade}</Badge>
         </span>
       </div>
       <div className="flex flex-1 flex-col gap-1.5 border-t border-border p-4">

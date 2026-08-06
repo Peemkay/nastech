@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatNaira, formatDateTime, formatDate } from "@/lib/utils";
-import { SELL_REQUEST_STATUS_LABELS } from "@/lib/constants";
+import { SELL_REQUEST_STATUS_LABELS, formatStateName } from "@/lib/constants";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { SellStatusBadge } from "@/components/ui/Badge";
 import { StatusTimeline } from "@/components/StatusTimeline";
@@ -85,7 +85,7 @@ export default async function AdminSellRequestDetailPage({ params }: { params: P
               <div>
                 <p className="text-xs text-muted">Pickup</p>
                 <p className="font-medium text-foreground">{sellRequest.pickupLine1}{sellRequest.pickupLine2 && `, ${sellRequest.pickupLine2}`}</p>
-                <p className="text-muted">{sellRequest.pickupCity}, {sellRequest.pickupState}</p>
+                <p className="text-muted">{sellRequest.pickupLga && `${sellRequest.pickupLga}, `}{sellRequest.pickupCity}, {sellRequest.pickupState && formatStateName(sellRequest.pickupState)}</p>
                 <p className="text-muted">{sellRequest.pickupDate && formatDate(sellRequest.pickupDate)} · {sellRequest.pickupSlot}</p>
               </div>
             </CardBody>

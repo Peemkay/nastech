@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { trackingCode } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
-
-const FLAT_SHIPPING_FEE_KOBO = 250000; // ₦2,500
+import { quoteDeliveryFee, DeliveryUnavailableError } from "@/lib/delivery/pricing";
+import { isDefaultEnabled } from "@/lib/locations";
 
 const bodySchema = z.object({
   items: z.array(z.object({ productId: z.string().min(1), quantity: z.number().int().min(1).max(20) })).min(1),
@@ -16,6 +16,7 @@ const bodySchema = z.object({
   shipLine1: z.string().min(3),
   shipLine2: z.string().optional().nullable(),
   shipCity: z.string().min(2),
+  shipLga: z.string().optional().nullable(),
   shipState: z.string().min(2),
   paymentMethod: z.enum(["PAYSTACK", "FLUTTERWAVE", "BANK_TRANSFER"]),
 });
@@ -24,6 +25,10 @@ export async function POST(req: NextRequest) {
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid order", issues: parsed.error.flatten() }, { status: 400 });
   const data = parsed.data;
+
+  const region = await prisma.serviceRegion.findUnique({ where: { state: data.shipState } });
+  const regionEnabled = region ? region.enabled : isDefaultEnabled(data.shipState);
+  if (!regionEnabled) return NextResponse.json({ error: "We don't deliver to this state yet" }, { status: 400 });
 
   const products = await prisma.product.findMany({ where: { id: { in: data.items.map((i) => i.productId) } } });
   const productMap = new Map(products.map((p) => [p.id, p]));
@@ -36,7 +41,19 @@ export async function POST(req: NextRequest) {
 
   const subtotalKobo = data.items.reduce((sum, i) => sum + productMap.get(i.productId)!.priceKobo * i.quantity, 0);
   const settings = await getSettings();
-  const shippingFeeKobo = subtotalKobo >= settings.freeShippingThresholdKobo ? 0 : FLAT_SHIPPING_FEE_KOBO;
+
+  let shippingFeeKobo = 0;
+  let deliveryDistanceKm: number | null = null;
+  if (subtotalKobo < settings.freeShippingThresholdKobo) {
+    try {
+      const quote = await quoteDeliveryFee({ line1: data.shipLine1, city: data.shipCity, lga: data.shipLga ?? "", state: data.shipState });
+      shippingFeeKobo = quote.feeKobo;
+      deliveryDistanceKm = quote.distanceKm;
+    } catch (e) {
+      const message = e instanceof DeliveryUnavailableError ? e.message : "Could not calculate delivery fee";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+  }
   const totalKobo = subtotalKobo + shippingFeeKobo;
 
   const session = await auth();
@@ -49,6 +66,7 @@ export async function POST(req: NextRequest) {
       userId: session?.user?.id ?? null,
       subtotalKobo,
       shippingFeeKobo,
+      deliveryDistanceKm,
       totalKobo,
       contactEmail: data.contactEmail,
       contactPhone: data.contactPhone,
@@ -57,6 +75,7 @@ export async function POST(req: NextRequest) {
       shipLine1: data.shipLine1,
       shipLine2: data.shipLine2 ?? null,
       shipCity: data.shipCity,
+      shipLga: data.shipLga ?? null,
       shipState: data.shipState,
       paymentMethod: data.paymentMethod,
       items: {

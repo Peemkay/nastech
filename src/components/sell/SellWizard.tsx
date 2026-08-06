@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, CalendarDays, ChevronLeft, MapPin, ShieldCheck, Sun, Sunrise, Sunset } from "lucide-react";
 import { computeQuoteKobo } from "@/lib/quote-engine";
 import { formatNaira } from "@/lib/utils";
-import { NIGERIAN_STATES } from "@/lib/constants";
+import { DEFAULT_ENABLED_STATE, formatStateName } from "@/lib/constants";
 import { StepIndicator } from "./StepIndicator";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Label, Input, Select } from "@/components/ui/Field";
+import { Label, Input } from "@/components/ui/Field";
 import { DeviceIcon } from "@/components/DeviceIcon";
+import { LocationSelect } from "@/components/LocationSelect";
 import { cn } from "@/lib/utils";
 
 type Question = { id: string; question: string; options: { id: string; label: string; deductionBps: number }[] };
@@ -47,7 +48,8 @@ export function SellWizard({ category, brand, model, questions }: Props) {
     pickupLine1: "",
     pickupLine2: "",
     pickupCity: "",
-    pickupState: "Lagos",
+    pickupLga: "",
+    pickupState: DEFAULT_ENABLED_STATE,
     pickupDate: "",
     pickupSlot: SLOTS[0].id,
   });
@@ -218,17 +220,15 @@ export function SellWizard({ category, brand, model, questions }: Props) {
                     <div className="sm:col-span-2">
                       <Input value={form.pickupLine2} onChange={(e) => setForm((f) => ({ ...f, pickupLine2: e.target.value }))} placeholder="Landmark / apartment (optional)" />
                     </div>
+                    <LocationSelect
+                      state={form.pickupState}
+                      lga={form.pickupLga}
+                      onStateChange={(pickupState) => setForm((f) => ({ ...f, pickupState }))}
+                      onLgaChange={(pickupLga) => setForm((f) => ({ ...f, pickupLga }))}
+                    />
                     <div>
-                      <Label required>City</Label>
-                      <Input value={form.pickupCity} onChange={(e) => setForm((f) => ({ ...f, pickupCity: e.target.value }))} placeholder="e.g. Ikeja" />
-                    </div>
-                    <div>
-                      <Label required>State</Label>
-                      <Select value={form.pickupState} onChange={(e) => setForm((f) => ({ ...f, pickupState: e.target.value }))}>
-                        {NIGERIAN_STATES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </Select>
+                      <Label required>City / Town</Label>
+                      <Input value={form.pickupCity} onChange={(e) => setForm((f) => ({ ...f, pickupCity: e.target.value }))} placeholder="e.g. Kubwa" />
                     </div>
                     <div>
                       <Label required>Pickup date</Label>
@@ -284,7 +284,7 @@ export function SellWizard({ category, brand, model, questions }: Props) {
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted">Pickup</p>
                     <p className="mt-1 flex items-start gap-1.5 text-sm text-foreground">
                       <MapPin className="mt-0.5 size-3.5 shrink-0 text-brand-600" />
-                      {form.pickupLine1}, {form.pickupCity}, {form.pickupState}
+                      {form.pickupLine1}, {form.pickupLga && `${form.pickupLga}, `}{form.pickupCity}, {formatStateName(form.pickupState)}
                     </p>
                     <p className="mt-1 flex items-center gap-1.5 text-sm text-foreground">
                       <CalendarDays className="size-3.5 shrink-0 text-brand-600" /> {form.pickupDate} · {form.pickupSlot}

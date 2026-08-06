@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatNaira, formatDateTime } from "@/lib/utils";
-import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/constants";
+import { ORDER_STATUSES, ORDER_STATUS_LABELS, formatStateName } from "@/lib/constants";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/Badge";
 import { StatusTimeline } from "@/components/StatusTimeline";
@@ -64,7 +64,8 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
               <div>
                 <p className="text-xs text-muted">Delivery address</p>
                 <p className="font-medium text-foreground">{order.shipLine1}{order.shipLine2 && `, ${order.shipLine2}`}</p>
-                <p className="text-muted">{order.shipCity}, {order.shipState}</p>
+                <p className="text-muted">{order.shipLga && `${order.shipLga}, `}{order.shipCity}, {formatStateName(order.shipState)}</p>
+                {order.deliveryDistanceKm != null && <p className="mt-1 text-xs text-muted">~{Math.round(order.deliveryDistanceKm)}km from depot</p>}
               </div>
             </CardBody>
           </Card>

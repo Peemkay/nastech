@@ -1,34 +1,37 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Banknote, Package, Repeat, ShoppingCart, TriangleAlert, Users } from "lucide-react";
+import { Banknote, Package, Repeat, ShoppingCart, TriangleAlert, Users, Wrench } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatNaira, formatDateTime } from "@/lib/utils";
-import { ORDER_STATUS_LABELS, SELL_REQUEST_STATUS_LABELS } from "@/lib/constants";
+import { ORDER_STATUS_LABELS, SELL_REQUEST_STATUS_LABELS, REPAIR_STATUS_LABELS } from "@/lib/constants";
 import { StatCard } from "@/components/admin/StatCard";
 import { RevenueChart } from "@/components/admin/RevenueChart";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { OrderStatusBadge, SellStatusBadge } from "@/components/ui/Badge";
+import { Badge, OrderStatusBadge, SellStatusBadge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/Misc";
 
 export const metadata: Metadata = { title: "Admin Dashboard" };
 
 const PENDING_SELL_STATUSES = ["QUOTE_GENERATED", "PICKUP_SCHEDULED", "PICKED_UP", "INSPECTING", "OFFER_REVISED"];
+const PENDING_REPAIR_STATUSES = ["REQUESTED", "DIAGNOSING", "AWAITING_APPROVAL", "IN_REPAIR"];
 
 export default async function AdminDashboardPage() {
   const fourteenDaysAgo = new Date();
   fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
   fourteenDaysAgo.setHours(0, 0, 0, 0);
 
-  const [revenueAgg, ordersCount, pendingSellCount, productsCount, lowStockCount, usersCount, recentOrders, recentSells, recentPaidOrders] =
+  const [revenueAgg, ordersCount, pendingSellCount, pendingRepairCount, productsCount, lowStockCount, usersCount, recentOrders, recentSells, recentRepairs, recentPaidOrders] =
     await Promise.all([
       prisma.order.aggregate({ where: { paymentStatus: "PAID" }, _sum: { totalKobo: true } }),
       prisma.order.count(),
       prisma.sellRequest.count({ where: { status: { in: PENDING_SELL_STATUSES } } }),
+      prisma.repairRequest.count({ where: { status: { in: PENDING_REPAIR_STATUSES } } }),
       prisma.product.count(),
       prisma.product.count({ where: { stock: { gt: 0, lte: 5 }, isActive: true } }),
       prisma.user.count({ where: { role: "CUSTOMER" } }),
       prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
       prisma.sellRequest.findMany({ orderBy: { createdAt: "desc" }, take: 5, include: { model: { include: { brand: true } } } }),
+      prisma.repairRequest.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
       prisma.order.findMany({ where: { paymentStatus: "PAID", updatedAt: { gte: fourteenDaysAgo } }, select: { totalKobo: true, updatedAt: true } }),
     ]);
 
@@ -55,7 +58,8 @@ export default async function AdminDashboardPage() {
         <StatCard icon={Users} label="Customers" value={usersCount} tone="silver" />
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <StatCard icon={Wrench} label="Active repairs" value={pendingRepairCount} tone="warning" />
         <StatCard icon={Package} label="Active products" value={productsCount} tone="brand" />
         <StatCard icon={TriangleAlert} label="Low stock (≤5 units)" value={lowStockCount} tone="warning" hint={lowStockCount > 0 ? "Review inventory soon" : undefined} />
       </div>
@@ -69,7 +73,7 @@ export default async function AdminDashboardPage() {
         </CardBody>
       </Card>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex items-center justify-between">
             <p className="text-sm font-semibold text-foreground">Recent orders</p>
@@ -119,6 +123,35 @@ export default async function AdminDashboardPage() {
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-medium text-foreground">{formatNaira(s.quotedKobo, { withDecimals: false })}</span>
                         <SellStatusBadge status={s.status} label={SELL_REQUEST_STATUS_LABELS[s.status as keyof typeof SELL_REQUEST_STATUS_LABELS] ?? s.status} />
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-foreground">Recent repairs</p>
+            <Link href="/admin/repairs" className="text-xs font-medium text-brand-600 hover:underline">View all</Link>
+          </CardHeader>
+          <CardBody className="p-0">
+            {recentRepairs.length === 0 ? (
+              <div className="p-6"><EmptyState title="No repair requests yet" /></div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {recentRepairs.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/admin/repairs/${r.id}`} className="flex items-center justify-between px-5 py-3.5 hover:bg-brand-50/40">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{r.code}</p>
+                        <p className="text-xs text-muted">{r.deviceLabel}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-foreground">{formatNaira(r.finalKobo ?? r.estimatedKobo, { withDecimals: false })}</span>
+                        <Badge tone="brand">{REPAIR_STATUS_LABELS[r.status as keyof typeof REPAIR_STATUS_LABELS] ?? r.status}</Badge>
                       </div>
                     </Link>
                   </li>

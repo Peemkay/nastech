@@ -19,9 +19,9 @@ export async function FeaturedProducts() {
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <SectionHeading
             className="mb-0"
-            eyebrow="Shop refurbished"
-            title="Certified devices, up to 40% off retail"
-            subtitle="Every unit is graded, tested and backed by a 12-month warranty."
+            eyebrow="Shop"
+            title="Brand-new & certified refurbished devices"
+            subtitle="New devices come with full manufacturer warranty. Every refurbished unit is graded, tested and backed by a 12-month NASTECH warranty."
           />
           <LinkButton href="/shop" variant="secondary">
             View all

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { computeQuoteKobo } from "@/lib/quote-engine";
 import { trackingCode } from "@/lib/utils";
+import { isDefaultEnabled } from "@/lib/locations";
 
 const bodySchema = z.object({
   categoryId: z.string().min(1),
@@ -16,6 +17,7 @@ const bodySchema = z.object({
   pickupLine1: z.string().min(3),
   pickupLine2: z.string().optional().nullable(),
   pickupCity: z.string().min(2),
+  pickupLga: z.string().optional().nullable(),
   pickupState: z.string().min(2),
   pickupDate: z.string().min(4),
   pickupSlot: z.string().min(1),
@@ -28,6 +30,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request", issues: parsed.error.flatten() }, { status: 400 });
   }
   const data = parsed.data;
+
+  const region = await prisma.serviceRegion.findUnique({ where: { state: data.pickupState } });
+  const regionEnabled = region ? region.enabled : isDefaultEnabled(data.pickupState);
+  if (!regionEnabled) return NextResponse.json({ error: "We don't offer pickup in this state yet" }, { status: 400 });
 
   const model = await prisma.deviceModel.findUnique({ where: { id: data.modelId } });
   if (!model || model.brandId === undefined) {
@@ -74,6 +80,7 @@ export async function POST(req: NextRequest) {
       pickupLine1: data.pickupLine1,
       pickupLine2: data.pickupLine2 ?? null,
       pickupCity: data.pickupCity,
+      pickupLga: data.pickupLga ?? null,
       pickupState: data.pickupState,
       pickupDate: new Date(data.pickupDate),
       pickupSlot: data.pickupSlot,

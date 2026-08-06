@@ -10,6 +10,7 @@ export default async function AdminCatalogPage() {
     include: {
       brands: { orderBy: { name: "asc" }, include: { models: { orderBy: { name: "asc" } } } },
       conditionQuestions: { orderBy: { sortOrder: "asc" }, include: { options: { orderBy: { sortOrder: "asc" } } } },
+      repairIssues: { orderBy: { sortOrder: "asc" } },
     },
   });
 
@@ -17,7 +18,7 @@ export default async function AdminCatalogPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-foreground">Catalog & Pricing</h1>
-        <p className="text-sm text-muted">Manage categories, brands, models and the condition questions that drive the trade-in quote engine.</p>
+        <p className="text-sm text-muted">Manage categories, brands, models, trade-in condition questions and repair services.</p>
       </div>
       <CatalogManager categories={categories} />
     </div>

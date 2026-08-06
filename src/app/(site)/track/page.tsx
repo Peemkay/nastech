@@ -35,7 +35,7 @@ export default function TrackLookupPage() {
                 Track
               </Button>
             </div>
-            <p className="mt-2 text-xs text-muted">Codes start with NAS-ORD- for purchases or NAS-SEL- for sell/trade-in requests.</p>
+            <p className="mt-2 text-xs text-muted">Codes start with NAS-ORD- for purchases, NAS-SEL- for sell/trade-in requests, or NAS-REP- for repairs.</p>
           </form>
         </CardBody>
       </Card>

@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Landmark } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatNaira, formatDate } from "@/lib/utils";
-import { ORDER_STATUS_LABELS, SELL_REQUEST_STATUS_LABELS } from "@/lib/constants";
+import { ORDER_STATUS_LABELS, SELL_REQUEST_STATUS_LABELS, REPAIR_STATUS_LABELS, REPAIR_SERVICE_TYPE_LABELS, formatStateName, type RepairServiceType } from "@/lib/constants";
 import { getSettings } from "@/lib/settings";
 import { Container } from "@/components/ui/Misc";
 import { Card, CardBody } from "@/components/ui/Card";
-import { OrderStatusBadge, PaymentStatusBadge, SellStatusBadge } from "@/components/ui/Badge";
+import { Badge, OrderStatusBadge, PaymentStatusBadge, SellStatusBadge } from "@/components/ui/Badge";
 import { StatusTimeline } from "@/components/StatusTimeline";
 import { CopyCodeButton } from "@/components/CopyCodeButton";
 
@@ -23,6 +23,66 @@ export default async function TrackPage({
   const { code: rawCode } = await params;
   const code = rawCode.toUpperCase();
   const sp = await searchParams;
+
+  if (code.includes("REP")) {
+    const repairRequest = await prisma.repairRequest.findUnique({
+      where: { code },
+      include: { issues: true, statusEvents: { orderBy: { createdAt: "asc" } } },
+    });
+    if (!repairRequest) notFound();
+
+    return (
+      <Container className="max-w-2xl py-12">
+        <Banner show={sp.new === "1"} />
+        <Card>
+          <CardBody>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-1.5 text-lg font-extrabold text-foreground">
+                  {repairRequest.code} <CopyCodeButton code={repairRequest.code} />
+                </p>
+                <p className="text-sm text-muted">{repairRequest.deviceLabel}</p>
+              </div>
+              <Badge tone="brand">{REPAIR_STATUS_LABELS[repairRequest.status as keyof typeof REPAIR_STATUS_LABELS] ?? repairRequest.status}</Badge>
+            </div>
+
+            <div className="my-5 h-px bg-border" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">{repairRequest.finalKobo != null ? "Final cost" : "Estimated cost"}</p>
+                <p className="mt-1 text-xl font-extrabold text-foreground">{formatNaira(repairRequest.finalKobo ?? repairRequest.estimatedKobo, { withDecimals: false })}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">Service</p>
+                <p className="mt-1 text-sm font-medium text-foreground">{REPAIR_SERVICE_TYPE_LABELS[repairRequest.serviceType as RepairServiceType]}</p>
+                {repairRequest.serviceType === "PICKUP" && repairRequest.pickupDate && (
+                  <p className="text-xs text-muted">{formatDate(repairRequest.pickupDate)} · {repairRequest.pickupSlot}</p>
+                )}
+              </div>
+            </div>
+            <div className="mt-4 rounded-xl bg-silver-100/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Repairs</p>
+              <ul className="mt-2 space-y-1">
+                {repairRequest.issues.map((i) => (
+                  <li key={i.id} className="flex justify-between text-sm">
+                    <span className="text-muted">{i.name}</span>
+                    <span className="font-medium text-foreground">{formatNaira(i.priceKobo, { withDecimals: false })}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card className="mt-6">
+          <CardBody>
+            <p className="mb-4 text-sm font-semibold text-foreground">Status</p>
+            <StatusTimeline events={repairRequest.statusEvents} statusLabels={REPAIR_STATUS_LABELS} />
+          </CardBody>
+        </Card>
+      </Container>
+    );
+  }
 
   if (code.includes("SEL")) {
     const sellRequest = await prisma.sellRequest.findUnique({
@@ -60,7 +120,7 @@ export default async function TrackPage({
                   {sellRequest.pickupDate && formatDate(sellRequest.pickupDate)} · {sellRequest.pickupSlot}
                 </p>
                 <p className="text-xs text-muted">
-                  {sellRequest.pickupLine1}, {sellRequest.pickupCity}, {sellRequest.pickupState}
+                  {sellRequest.pickupLine1}, {sellRequest.pickupLga && `${sellRequest.pickupLga}, `}{sellRequest.pickupCity}, {sellRequest.pickupState && formatStateName(sellRequest.pickupState)}
                 </p>
               </div>
             </div>
@@ -131,7 +191,7 @@ export default async function TrackPage({
           <div className="mt-4 rounded-xl bg-silver-100/60 p-4 text-sm">
             <p className="text-muted">Deliver to</p>
             <p className="mt-1 font-medium text-foreground">{order.shipFullName} · {order.shipPhone}</p>
-            <p className="text-muted">{order.shipLine1}, {order.shipCity}, {order.shipState}</p>
+            <p className="text-muted">{order.shipLine1}, {order.shipLga && `${order.shipLga}, `}{order.shipCity}, {formatStateName(order.shipState)}</p>
           </div>
         </CardBody>
       </Card>

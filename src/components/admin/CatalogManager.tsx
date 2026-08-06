@@ -7,13 +7,14 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { cn, nairaToKobo } from "@/lib/utils";
-import { CATEGORY_ICONS } from "@/lib/constants";
+import { CATEGORY_ICONS, REPAIR_ISSUE_TYPES } from "@/lib/constants";
 
 type Option = { id: string; label: string; deductionBps: number };
 type Question = { id: string; question: string; options: Option[] };
 type ModelT = { id: string; name: string; slug: string; baseValueKobo: number; storageOptions: unknown };
 type BrandT = { id: string; name: string; slug: string; models: ModelT[] };
-type CategoryT = { id: string; name: string; slug: string; icon: string; brands: BrandT[]; conditionQuestions: Question[] };
+type RepairIssueT = { id: string; name: string; type: string; basePriceKobo: number; durationHint: string };
+type CategoryT = { id: string; name: string; slug: string; icon: string; brands: BrandT[]; conditionQuestions: Question[]; repairIssues: RepairIssueT[] };
 
 async function call(url: string, method: string, body?: unknown) {
   const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
@@ -220,6 +221,59 @@ export function CatalogManager({ categories }: { categories: CategoryT[] }) {
               />
             </CardBody>
           </Card>
+
+          <Card>
+            <CardHeader><p className="text-sm font-semibold text-foreground">Repair services — {category.name}</p></CardHeader>
+            <CardBody className="space-y-2">
+              {category.repairIssues.map((issue) => (
+                <EditRow
+                  key={issue.id}
+                  fields={[
+                    { key: "name", value: issue.name, placeholder: "Repair name, e.g. Screen Replacement" },
+                    { key: "type", value: issue.type, placeholder: "Type", options: [...REPAIR_ISSUE_TYPES] },
+                    { key: "priceNaira", value: String(issue.basePriceKobo / 100), placeholder: "From price ₦", type: "number" },
+                    { key: "durationHint", value: issue.durationHint, placeholder: "e.g. Same day" },
+                  ]}
+                  onSave={(v) =>
+                    withBusy(() =>
+                      call(`/api/admin/repair-issues/${issue.id}`, "PATCH", {
+                        name: v.name,
+                        type: v.type,
+                        basePriceKobo: nairaToKobo(Number(v.priceNaira) || 0),
+                        durationHint: v.durationHint,
+                        sortOrder: 0,
+                      }),
+                    )
+                  }
+                  onDelete={() => withBusy(() => call(`/api/admin/repair-issues/${issue.id}`, "DELETE"))}
+                  disabled={busy}
+                />
+              ))}
+              <EditRow
+                fields={[
+                  { key: "name", value: "", placeholder: "New repair, e.g. Battery Replacement" },
+                  { key: "type", value: "HARDWARE", placeholder: "Type", options: [...REPAIR_ISSUE_TYPES] },
+                  { key: "priceNaira", value: "", placeholder: "From price ₦", type: "number" },
+                  { key: "durationHint", value: "1-2 hours", placeholder: "e.g. Same day" },
+                ]}
+                isNew
+                onSave={(v) =>
+                  v.name &&
+                  withBusy(() =>
+                    call("/api/admin/repair-issues", "POST", {
+                      categoryId: category.id,
+                      name: v.name,
+                      type: v.type,
+                      basePriceKobo: nairaToKobo(Number(v.priceNaira) || 0),
+                      durationHint: v.durationHint || "1-2 hours",
+                      sortOrder: category.repairIssues.length,
+                    }),
+                  )
+                }
+                disabled={busy}
+              />
+            </CardBody>
+          </Card>
         </div>
       )}
     </div>
@@ -242,7 +296,7 @@ function NewCategoryForm({ onAdd }: { onAdd: (name: string, icon: string) => voi
   );
 }
 
-type FieldDef = { key: string; value: string; placeholder: string; type?: string };
+type FieldDef = { key: string; value: string; placeholder: string; type?: string; options?: string[] };
 
 function EditRow({
   fields,
@@ -267,16 +321,27 @@ function EditRow({
 
   return (
     <div className={cn("flex items-center gap-2 rounded-lg", selected && "ring-2 ring-brand-200 bg-brand-50/50 -mx-2 px-2 py-1")} onClick={onClick}>
-      {fields.map((f) => (
-        <Input
-          key={f.key}
-          type={f.type ?? "text"}
-          value={values[f.key]}
-          onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-          placeholder={f.placeholder}
-          className={compact ? "h-9 text-xs" : ""}
-        />
-      ))}
+      {fields.map((f) =>
+        f.options ? (
+          <Select
+            key={f.key}
+            value={values[f.key]}
+            onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+            className={compact ? "h-9 text-xs" : ""}
+          >
+            {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
+          </Select>
+        ) : (
+          <Input
+            key={f.key}
+            type={f.type ?? "text"}
+            value={values[f.key]}
+            onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+            placeholder={f.placeholder}
+            className={compact ? "h-9 text-xs" : ""}
+          />
+        ),
+      )}
       {onSave && (
         <button disabled={disabled} onClick={(e) => { e.stopPropagation(); onSave(values); }} className="shrink-0 rounded-full p-2 text-brand-600 hover:bg-brand-50 disabled:opacity-40" aria-label="Save">
           {isNew ? <Plus className="size-4" /> : <Save className="size-4" />}

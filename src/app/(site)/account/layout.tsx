@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Package, Repeat, User, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Repeat, User, LogOut, Wrench } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { logoutAction } from "@/lib/actions/auth";
 import { Container } from "@/components/ui/Misc";
@@ -8,6 +8,7 @@ const NAV = [
   { href: "/account", label: "Overview", icon: LayoutDashboard },
   { href: "/account/orders", label: "My Orders", icon: Package },
   { href: "/account/sell-requests", label: "Sell Requests", icon: Repeat },
+  { href: "/account/repairs", label: "My Repairs", icon: Wrench },
   { href: "/account/profile", label: "Profile", icon: User },
 ];
 

@@ -28,10 +28,11 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  addresses    Address[]
-  sellRequests SellRequest[]
-  orders       Order[]
-  reviews      Review[]
+  addresses      Address[]
+  sellRequests   SellRequest[]
+  orders         Order[]
+  reviews        Review[]
+  repairRequests RepairRequest[]
 }
 
 model Address {
@@ -62,6 +63,8 @@ model DeviceCategory {
   conditionQuestions ConditionQuestion[]
   products          Product[]
   sellRequests      SellRequest[]
+  repairIssues      RepairIssue[]
+  repairRequests    RepairRequest[]
 }
 
 model Brand {
@@ -72,8 +75,9 @@ model Brand {
   slug       String
   logoUrl    String?
 
-  models   DeviceModel[]
-  products Product[]
+  models         DeviceModel[]
+  products       Product[]
+  repairRequests RepairRequest[]
 
   @@unique([categoryId, slug])
 }
@@ -144,6 +148,7 @@ model SellRequest {
   pickupLine1  String?
   pickupLine2  String?
   pickupCity   String?
+  pickupLga    String?
   pickupState  String?
   pickupDate   DateTime?
   pickupSlot   String?
@@ -225,6 +230,7 @@ model Order {
 
   subtotalKobo    Int
   shippingFeeKobo Int    @default(0)
+  deliveryDistanceKm Float? // road distance from depot at time of order, if computed via the distance API
   totalKobo       Int
   currency        String @default("NGN")
 
@@ -243,6 +249,7 @@ model Order {
   shipLine1    String
   shipLine2    String?
   shipCity     String
+  shipLga      String?
   shipState    String
 
   createdAt DateTime @default(now())
@@ -312,5 +319,105 @@ model Settings {
   bankAccountNumber      String  @default("0000000000")
   bankAccountName        String  @default("NASTECH Gadgets Limited")
   freeShippingThresholdKobo Int  @default(5000000)
-  updatedAt              DateTime @updatedAt
+
+  // --- Delivery pricing (distance-based, from the depot) ---
+  depotName        String @default("NASTECH Hub — Dutsen Alhaji Market")
+  depotAddress     String @default("Dutsen Alhaji Market, Bwari Area Council, Abuja, FCT")
+  depotLat         Float  @default(9.0667)
+  depotLng         Float  @default(7.4833)
+  baseFareKobo     Int    @default(100000) // ₦1,000 — flat fee included before per-km charge
+  perKmFareKobo    Int    @default(15000)  // ₦150 / km beyond the base
+  minFareKobo      Int    @default(150000) // ₦1,500 — floor, in case computed fare undercuts it
+  maxDeliveryKm    Int    @default(60)     // beyond this, delivery isn't offered (customer contacted manually)
+
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Service regions (which Nigerian states are live) ----------
+
+model ServiceRegion {
+  id        String   @id @default(cuid())
+  state     String   @unique // must match a name from the states API, e.g. "FCT", "Lagos"
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Repair services ----------
+
+model RepairIssue {
+  id            String   @id @default(cuid())
+  categoryId    String
+  category      DeviceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name          String // e.g. "Screen Replacement"
+  type          String   @default("HARDWARE") // HARDWARE | SOFTWARE
+  basePriceKobo Int // starting/estimate price — "from ₦X", final cost confirmed after diagnosis
+  durationHint  String   @default("1-2 hours") // free text, e.g. "Same day", "24-48 hours"
+  description   String   @default("")
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+
+  requestLines RepairRequestIssue[]
+}
+
+model RepairRequest {
+  id         String   @id @default(cuid())
+  code       String   @unique // NAS-REP-000123
+
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+
+  categoryId String
+  category   DeviceCategory @relation(fields: [categoryId], references: [id])
+  brandId    String?
+  brand      Brand?   @relation(fields: [brandId], references: [id])
+  deviceLabel String // free text, e.g. "iPhone 12 Pro, black" — brand/model may not be in our catalog
+
+  problemDescription String @default("")
+
+  serviceType String // DROP_OFF | PICKUP
+  contactName  String
+  contactPhone String
+  contactEmail String
+
+  pickupLine1  String?
+  pickupLine2  String?
+  pickupCity   String?
+  pickupLga    String?
+  pickupState  String?
+  pickupDate   DateTime?
+  pickupSlot   String?
+
+  estimatedKobo Int
+  finalKobo     Int?
+  paymentStatus String @default("PENDING") // PENDING | PAID
+
+  status String @default("REQUESTED")
+  // REQUESTED | DIAGNOSING | AWAITING_APPROVAL | IN_REPAIR | READY | COMPLETED | CANCELLED
+
+  adminNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  issues       RepairRequestIssue[]
+  statusEvents RepairStatusEvent[]
+}
+
+model RepairRequestIssue {
+  id              String        @id @default(cuid())
+  repairRequestId String
+  repairRequest   RepairRequest @relation(fields: [repairRequestId], references: [id], onDelete: Cascade)
+  repairIssueId   String
+  repairIssue     RepairIssue   @relation(fields: [repairIssueId], references: [id])
+  name            String // snapshot, in case the catalog entry changes later
+  priceKobo       Int // snapshot
+}
+
+model RepairStatusEvent {
+  id              String        @id @default(cuid())
+  repairRequestId String
+  repairRequest   RepairRequest @relation(fields: [repairRequestId], references: [id], onDelete: Cascade)
+  status          String
+  note            String?
+  createdAt       DateTime      @default(now())
 }

@@ -21,7 +21,7 @@ export function nairaToKobo(naira: number) {
 }
 
 /** Sequential, human-friendly tracking codes, e.g. NAS-SEL-000123 */
-export function trackingCode(prefix: "SEL" | "ORD", n: number) {
+export function trackingCode(prefix: "SEL" | "ORD" | "REP", n: number) {
   return `NAS-${prefix}-${String(n).padStart(6, "0")}`;
 }
 

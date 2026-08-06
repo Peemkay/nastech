@@ -14,6 +14,14 @@ const schema = z.object({
   bankAccountNumber: z.string().min(4),
   bankAccountName: z.string().min(2),
   freeShippingThresholdKobo: z.number().int().min(0),
+  depotName: z.string().min(2),
+  depotAddress: z.string().min(5),
+  depotLat: z.number().min(-90).max(90),
+  depotLng: z.number().min(-180).max(180),
+  baseFareKobo: z.number().int().min(0),
+  perKmFareKobo: z.number().int().min(0),
+  minFareKobo: z.number().int().min(0),
+  maxDeliveryKm: z.number().int().min(1),
 });
 
 export async function PATCH(req: NextRequest) {

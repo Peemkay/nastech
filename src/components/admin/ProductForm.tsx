@@ -6,6 +6,7 @@ import { AlertCircle, Plus, Trash2 } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Label, Input, Select, Textarea } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 import { PRODUCT_GRADES, GRADE_LABELS } from "@/lib/constants";
 import { nairaToKobo } from "@/lib/utils";
 
@@ -27,7 +28,7 @@ export type ProductFormValues = {
   priceNaira: string;
   compareAtPriceNaira: string;
   stock: string;
-  imageUrl: string;
+  images: string[];
   description: string;
   specs: { key: string; value: string }[];
   isActive: boolean;
@@ -52,7 +53,7 @@ export function ProductForm({ categories, initial }: { categories: CatalogCatego
     priceNaira: "",
     compareAtPriceNaira: "",
     stock: "1",
-    imageUrl: "",
+    images: [],
     description: "",
     specs: [{ key: "", value: "" }],
     isActive: true,
@@ -89,7 +90,7 @@ export function ProductForm({ categories, initial }: { categories: CatalogCatego
       priceKobo: nairaToKobo(Number(values.priceNaira) || 0),
       compareAtPriceKobo: values.compareAtPriceNaira ? nairaToKobo(Number(values.compareAtPriceNaira)) : null,
       stock: Number(values.stock) || 0,
-      images: values.imageUrl ? [values.imageUrl] : [],
+      images: values.images,
       description: values.description,
       specs,
       isActive: values.isActive,
@@ -220,11 +221,9 @@ export function ProductForm({ categories, initial }: { categories: CatalogCatego
         </Card>
 
         <Card>
-          <CardHeader><p className="text-sm font-semibold text-foreground">Image</p></CardHeader>
+          <CardHeader><p className="text-sm font-semibold text-foreground">Photos</p></CardHeader>
           <CardBody>
-            <Label>Image URL (optional)</Label>
-            <Input value={values.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://…" />
-            <p className="mt-1.5 text-xs text-muted">Leave blank to use a placeholder graphic.</p>
+            <ImageUploader images={values.images} onChange={(images) => set("images", images)} />
           </CardBody>
         </Card>
 
