@@ -19,7 +19,13 @@ export function StepIndicator({ steps, current }: { steps: string[]; current: nu
               >
                 {state === "done" ? <Check className="size-4" /> : i + 1}
               </span>
-              <span className={cn("hidden text-[11px] font-medium sm:block", state === "todo" ? "text-muted" : "text-foreground")}>
+              <span
+                className={cn(
+                  "text-center text-[11px] font-medium",
+                  state === "active" ? "block" : "hidden sm:block",
+                  state === "todo" ? "text-muted" : "text-foreground",
+                )}
+              >
                 {label}
               </span>
             </div>

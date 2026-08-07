@@ -14,7 +14,7 @@ export function WishlistIndicator() {
     <Link
       href="/wishlist"
       aria-label="Wishlist"
-      className="relative hidden size-10 items-center justify-center rounded-full text-foreground transition hover:bg-brand-50 sm:inline-flex"
+      className="relative inline-flex size-10 items-center justify-center rounded-full text-foreground transition hover:bg-brand-50"
     >
       <Heart className="size-5" />
       {mounted && count > 0 && (
