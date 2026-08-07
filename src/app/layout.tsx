@@ -13,7 +13,9 @@ export const metadata: Metadata = {
   title: { default: `${SITE_NAME} — ${SITE_TAGLINE}`, template: `%s | ${SITE_NAME}` },
   description:
     "Sell or trade in your phone, laptop, tablet or smartwatch for instant cash, or shop certified refurbished devices — all in Naira, with Nigerian payment methods.",
-  icons: { icon: "/logo.jpeg" },
+  // Favicon/app icons come from the file-convention icons in this directory
+  // (icon.svg, icon.png, apple-icon.png, favicon.ico) — Next.js picks these up
+  // automatically, so no explicit `icons` override is needed here.
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
