@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
+import { adminAuth } from "@/lib/auth-admin";
 import { prisma } from "@/lib/prisma";
 
 const schema = z.object({
@@ -25,4 +26,19 @@ export async function updateProfileAction(formData: FormData) {
   });
 
   revalidatePath("/account/profile");
+}
+
+export async function updateAdminProfileAction(formData: FormData) {
+  const session = await adminAuth();
+  if (!session?.user) return;
+
+  const parsed = schema.safeParse({ name: formData.get("name") });
+  if (!parsed.success) return;
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { name: parsed.data.name },
+  });
+
+  revalidatePath("/admin/profile");
 }

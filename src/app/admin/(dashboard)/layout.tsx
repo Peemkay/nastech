@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { ExternalLink, LogOut } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { adminAuth } from "@/lib/auth-admin";
 import { adminLogoutAction } from "@/lib/actions/auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Logo } from "@/components/layout/Logo";
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  const session = await adminAuth();
 
   return (
     <div className="flex min-h-screen bg-silver-100/60">
@@ -29,10 +29,10 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
             <Link href="/" target="_blank" className="flex items-center gap-1.5 text-xs font-medium text-muted hover:text-brand-600">
               View storefront <ExternalLink className="size-3.5" />
             </Link>
-            <div className="hidden text-right sm:block">
-              <p className="text-xs font-semibold text-foreground">{session?.user?.name}</p>
+            <Link href="/admin/profile" className="hidden text-right sm:block">
+              <p className="text-xs font-semibold text-foreground hover:text-brand-600">{session?.user?.name}</p>
               <p className="text-[10px] text-muted">{session?.user?.role}</p>
-            </div>
+            </Link>
             <form action={adminLogoutAction}>
               <button type="submit" aria-label="Log out" className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-red-50 hover:text-danger">
                 <LogOut className="size-4" />

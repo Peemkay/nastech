@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { MAIN_NAV, SITE_TAGLINE } from "@/lib/constants";
 import { Logo } from "./Logo";
 import { CartIndicator } from "./CartIndicator";
+import { WishlistIndicator } from "./WishlistIndicator";
 import { MobileMenu } from "./MobileMenu";
 import { LinkButton } from "@/components/ui/Button";
 
@@ -40,6 +41,7 @@ export async function Header() {
           <LinkButton href="/sell" size="sm" className="hidden sm:inline-flex">
             Sell Now
           </LinkButton>
+          <WishlistIndicator />
           <CartIndicator />
           <Link
             href={session ? "/account" : "/login"}

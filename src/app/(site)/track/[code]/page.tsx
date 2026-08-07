@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Badge, OrderStatusBadge, PaymentStatusBadge, SellStatusBadge } from "@/components/ui/Badge";
 import { StatusTimeline } from "@/components/StatusTimeline";
 import { CopyCodeButton } from "@/components/CopyCodeButton";
+import { ProofOfPaymentUploader } from "@/components/ProofOfPaymentUploader";
 
 export const metadata: Metadata = { title: "Track" };
 
@@ -139,9 +140,10 @@ export default async function TrackPage({
 
   const order = await prisma.order.findUnique({
     where: { code },
-    include: { items: true, statusEvents: { orderBy: { createdAt: "asc" } } },
+    include: { items: true, statusEvents: { orderBy: { createdAt: "asc" } }, payments: { orderBy: { createdAt: "desc" } } },
   });
   if (!order) notFound();
+  const bankTransferPayment = order.payments.find((p) => p.provider === "BANK_TRANSFER");
 
   const settings = order.paymentMethod === "BANK_TRANSFER" && order.paymentStatus === "AWAITING_VERIFICATION" ? await getSettings() : null;
 
@@ -210,6 +212,9 @@ export default async function TrackPage({
               <div className="flex justify-between"><dt className="text-muted">Reference (use as narration)</dt><dd className="font-mono font-medium text-foreground">{order.code}</dd></div>
             </dl>
             <p className="mt-3 text-xs text-brand-700">We confirm bank transfers within a few hours during business hours and will update this page automatically.</p>
+            <div className="mt-4 border-t border-brand-200 pt-4">
+              <ProofOfPaymentUploader orderCode={order.code} existingProofUrl={bankTransferPayment?.proofUrl} />
+            </div>
           </CardBody>
         </Card>
       )}

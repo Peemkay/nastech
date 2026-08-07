@@ -52,16 +52,16 @@ export default async function AdminDashboardPage() {
       <h1 className="mb-6 text-2xl font-extrabold text-foreground">Dashboard</h1>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Banknote} label="Total revenue (paid)" value={formatNaira(revenueAgg._sum.totalKobo ?? 0, { withDecimals: false })} tone="success" />
-        <StatCard icon={ShoppingCart} label="Total orders" value={ordersCount} tone="brand" />
-        <StatCard icon={Repeat} label="Pending sell requests" value={pendingSellCount} tone="warning" />
-        <StatCard icon={Users} label="Customers" value={usersCount} tone="silver" />
+        <StatCard icon={Banknote} label="Total revenue (paid)" value={formatNaira(revenueAgg._sum.totalKobo ?? 0, { withDecimals: false })} tone="success" href="/admin/payments" />
+        <StatCard icon={ShoppingCart} label="Total orders" value={ordersCount} tone="brand" href="/admin/orders" />
+        <StatCard icon={Repeat} label="Pending sell requests" value={pendingSellCount} tone="warning" href="/admin/sell-requests?status=PICKUP_SCHEDULED" />
+        <StatCard icon={Users} label="Customers" value={usersCount} tone="silver" href="/admin/users" />
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        <StatCard icon={Wrench} label="Active repairs" value={pendingRepairCount} tone="warning" />
-        <StatCard icon={Package} label="Active products" value={productsCount} tone="brand" />
-        <StatCard icon={TriangleAlert} label="Low stock (≤5 units)" value={lowStockCount} tone="warning" hint={lowStockCount > 0 ? "Review inventory soon" : undefined} />
+        <StatCard icon={Wrench} label="Active repairs" value={pendingRepairCount} tone="warning" href="/admin/repairs?status=REQUESTED" />
+        <StatCard icon={Package} label="Active products" value={productsCount} tone="brand" href="/admin/products" />
+        <StatCard icon={TriangleAlert} label="Low stock (≤5 units)" value={lowStockCount} tone="warning" hint={lowStockCount > 0 ? "Review inventory soon" : undefined} href="/admin/products?stock=low" />
       </div>
 
       <Card className="mt-6">

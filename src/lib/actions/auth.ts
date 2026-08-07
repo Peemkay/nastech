@@ -2,7 +2,8 @@
 
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
-import { signIn, signOut, auth } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
+import { adminSignIn, adminSignOut, adminAuth } from "@/lib/auth-admin";
 
 export async function loginAction(formData: FormData) {
   const identifier = String(formData.get("identifier") ?? "");
@@ -25,20 +26,23 @@ export async function logoutAction() {
 
 const ADMIN_ROLES = ["ADMIN", "SUPERADMIN"];
 
+// Admin sign-in uses a fully separate NextAuth instance (lib/auth-admin.ts)
+// with its own session cookie — an admin session never satisfies the
+// storefront's auth() and vice versa. See auth-admin.config.ts.
 export async function adminLoginAction(formData: FormData) {
   const identifier = String(formData.get("identifier") ?? "");
   const password = String(formData.get("password") ?? "");
 
   try {
-    await signIn("credentials", { identifier, password, redirect: false });
+    await adminSignIn("credentials", { identifier, password, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) redirect("/admin/login?error=1");
     throw error;
   }
 
-  const session = await auth();
+  const session = await adminAuth();
   if (!session?.user || !ADMIN_ROLES.includes(session.user.role ?? "")) {
-    await signOut({ redirect: false });
+    await adminSignOut({ redirect: false });
     redirect("/admin/login?error=2");
   }
 
@@ -46,5 +50,5 @@ export async function adminLoginAction(formData: FormData) {
 }
 
 export async function adminLogoutAction() {
-  await signOut({ redirectTo: "/admin/login" });
+  await adminSignOut({ redirectTo: "/admin/login" });
 }

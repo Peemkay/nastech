@@ -9,6 +9,7 @@ import { PaymentStatusBadge, Badge } from "@/components/ui/Badge";
 import { Card, CardBody } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/Misc";
+import { BankTransferReview } from "@/components/admin/BankTransferReview";
 
 export const metadata: Metadata = { title: "Payments" };
 
@@ -17,6 +18,7 @@ export default async function AdminPaymentsPage() {
     prisma.payment.findMany({ orderBy: { createdAt: "desc" }, take: 200, include: { order: { select: { code: true } } } }),
     getSettings(),
   ]);
+  const pendingBankTransferCount = payments.filter((p) => p.provider === "BANK_TRANSFER" && p.status === "INITIATED").length;
   const activeGateways = parseActiveGateways(settings.activeGateways);
 
   return (
@@ -31,6 +33,9 @@ export default async function AdminPaymentsPage() {
           <p className="text-sm font-semibold text-foreground">Active gateways:</p>
           {activeGateways.map((g) => <Badge key={g} tone="success">{g.replace("_", " ")}</Badge>)}
           <span className="text-xs text-muted">· Default: {settings.defaultGateway.replace("_", " ")}</span>
+          {pendingBankTransferCount > 0 && (
+            <Badge tone="warning">{pendingBankTransferCount} bank transfer{pendingBankTransferCount > 1 ? "s" : ""} awaiting review</Badge>
+          )}
         </CardBody>
       </Card>
 
@@ -46,6 +51,7 @@ export default async function AdminPaymentsPage() {
               <Th>Amount</Th>
               <Th>Status</Th>
               <Th>Date</Th>
+              <Th>Review</Th>
             </tr>
           </Thead>
           <Tbody>
@@ -57,6 +63,13 @@ export default async function AdminPaymentsPage() {
                 <Td className="font-semibold">{formatNaira(p.amountKobo, { withDecimals: false })}</Td>
                 <Td><PaymentStatusBadge status={p.status === "SUCCESS" ? "PAID" : p.status} label={p.status} /></Td>
                 <Td className="text-xs text-muted">{formatDateTime(p.createdAt)}</Td>
+                <Td>
+                  {p.provider === "BANK_TRANSFER" && p.status === "INITIATED" ? (
+                    <BankTransferReview paymentId={p.id} proofUrl={p.proofUrl} />
+                  ) : (
+                    <span className="text-xs text-muted">—</span>
+                  )}
+                </Td>
               </Tr>
             ))}
           </Tbody>

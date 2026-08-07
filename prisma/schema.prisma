@@ -307,6 +307,8 @@ model Payment {
   currency   String   @default("NGN")
   status     String   @default("INITIATED") // INITIATED | SUCCESS | FAILED
   rawPayload Json?
+  proofUrl        String? // customer-uploaded bank transfer receipt/screenshot (Vercel Blob URL)
+  proofUploadedAt DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }

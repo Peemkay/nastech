@@ -4,8 +4,10 @@ import { formatNaira } from "@/lib/utils";
 import { GRADE_LABELS, type ProductGrade } from "@/lib/constants";
 import { DeviceImagePlaceholder } from "@/components/DeviceIcon";
 import { Badge } from "@/components/ui/Badge";
+import { WishlistButton } from "@/components/shop/WishlistButton";
 
 export type ProductCardData = {
+  id: string;
   slug: string;
   name: string;
   priceKobo: number;
@@ -44,6 +46,10 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         <span className="absolute top-3 right-3">
           <Badge tone={product.grade === "NEW" ? "success" : "brand"}>{GRADE_LABELS[product.grade as ProductGrade] ?? product.grade}</Badge>
         </span>
+        <WishlistButton
+          className="absolute bottom-3 right-3"
+          product={{ productId: product.id, name: product.name, slug: product.slug, image: images[0], priceKobo: product.priceKobo, grade: product.grade }}
+        />
       </div>
       <div className="flex flex-1 flex-col gap-1.5 border-t border-border p-4">
         <p className="line-clamp-2 text-sm font-semibold text-foreground">{product.name}</p>

@@ -13,9 +13,11 @@ import { Prisma } from "@prisma/client";
 
 export const metadata: Metadata = { title: "Products" };
 
-export default async function AdminProductsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function AdminProductsPage({ searchParams }: { searchParams: Promise<{ q?: string; stock?: string }> }) {
   const sp = await searchParams;
   const where: Prisma.ProductWhereInput = sp.q ? { OR: [{ name: { contains: sp.q } }, { sku: { contains: sp.q } }] } : {};
+  if (sp.stock === "low") where.stock = { gt: 0, lte: 5 };
+  if (sp.stock === "out") where.stock = 0;
 
   const products = await prisma.product.findMany({ where, orderBy: { createdAt: "desc" }, take: 200, include: { category: true, brand: true } });
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { adminAuth } from "@/lib/auth-admin";
 import { formatDate } from "@/lib/utils";
 import { Table, Thead, Tbody, Tr, Th, Td } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Users" };
 
 export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const sp = await searchParams;
-  const session = await auth();
+  const session = await adminAuth();
   const where: Prisma.UserWhereInput = sp.q ? { OR: [{ name: { contains: sp.q } }, { email: { contains: sp.q } }] } : {};
 
   const users = await prisma.user.findMany({

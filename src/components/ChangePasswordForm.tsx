@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Label, Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 
-export function ChangePasswordForm() {
+export function ChangePasswordForm({ endpoint = "/api/account/password" }: { endpoint?: string }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -16,7 +16,7 @@ export function ChangePasswordForm() {
     setSubmitting(true);
     setError(null);
     setDone(false);
-    const res = await fetch("/api/account/password", {
+    const res = await fetch(endpoint, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ currentPassword, newPassword }),

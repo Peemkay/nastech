@@ -7,6 +7,7 @@ import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { OrderStatusBadge, PaymentStatusBadge } from "@/components/ui/Badge";
 import { StatusTimeline } from "@/components/StatusTimeline";
 import { StatusUpdater } from "@/components/admin/StatusUpdater";
+import { BankTransferReview } from "@/components/admin/BankTransferReview";
 
 export const metadata: Metadata = { title: "Order detail" };
 
@@ -78,7 +79,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
               ) : (
                 <ul className="divide-y divide-border">
                   {order.payments.map((p) => (
-                    <li key={p.id} className="flex items-center justify-between px-5 py-3 text-sm">
+                    <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
                       <div>
                         <p className="font-medium text-foreground">{p.provider.replace("_", " ")}</p>
                         <p className="font-mono text-xs text-muted">{p.reference}</p>
@@ -87,6 +88,11 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
                         <p className="font-medium text-foreground">{formatNaira(p.amountKobo, { withDecimals: false })}</p>
                         <PaymentStatusBadge status={p.status === "SUCCESS" ? "PAID" : p.status} label={p.status} />
                       </div>
+                      {p.provider === "BANK_TRANSFER" && p.status === "INITIATED" && (
+                        <div className="w-full border-t border-border pt-3">
+                          <BankTransferReview paymentId={p.id} proofUrl={p.proofUrl} />
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
