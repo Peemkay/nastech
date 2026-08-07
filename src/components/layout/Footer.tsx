@@ -96,7 +96,19 @@ export function Footer() {
 
       <div className="border-t border-white/10">
         <Container className="flex flex-col items-center justify-between gap-4 py-6 text-xs text-silver-500 sm:flex-row">
-          <p>© {new Date().getFullYear()} NASTECH Gadgets Ltd. All rights reserved.</p>
+          <p>
+            © {new Date().getFullYear()} NASTECH Gadgets Ltd. All rights reserved.
+            <span className="mx-2 text-silver-600">·</span>
+            Designed by{" "}
+            <a
+              href="https://peemkaytech.com.ng"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-silver-400 transition hover:text-brand-400"
+            >
+              PeemkayTECH
+            </a>
+          </p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="size-3.5 text-brand-400" /> Secure Nigerian payments
