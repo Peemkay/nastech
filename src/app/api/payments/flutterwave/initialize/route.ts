@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ link: init.link, reference: txRef });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Failed to initialize payment" }, { status: 502 });
+    console.error("[flutterwave] initialize failed:", e);
+    return NextResponse.json({ error: "Card payment isn't available right now. Please try another payment method." }, { status: 502 });
   }
 }

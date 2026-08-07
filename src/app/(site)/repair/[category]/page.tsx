@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getAccountPrefill } from "@/lib/account-prefill";
 import { Container } from "@/components/ui/Misc";
 import { RepairWizard } from "@/components/repair/RepairWizard";
 
@@ -22,6 +23,7 @@ export default async function RepairWizardPage({ params }: { params: Promise<{ c
   });
   if (!category) notFound();
   const session = await auth();
+  const prefill = session?.user?.id ? await getAccountPrefill(session.user.id) : null;
 
   return (
     <Container className="py-14">
@@ -37,6 +39,7 @@ export default async function RepairWizardPage({ params }: { params: Promise<{ c
           description: i.description,
         }))}
         isAuthenticated={!!session}
+        prefill={prefill}
       />
     </Container>
   );

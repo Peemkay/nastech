@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { computeQuoteKobo } from "@/lib/quote-engine";
 import { trackingCode } from "@/lib/utils";
 import { isDefaultEnabled } from "@/lib/locations";
+import { saveDefaultAddress } from "@/lib/account-prefill";
 
 const bodySchema = z.object({
   categoryId: z.string().min(1),
@@ -94,6 +95,16 @@ export async function POST(req: NextRequest) {
       },
     },
   });
+
+  await saveDefaultAddress(session.user.id, {
+    fullName: data.contactName,
+    phone: data.contactPhone,
+    line1: data.pickupLine1,
+    line2: data.pickupLine2,
+    city: data.pickupCity,
+    lga: data.pickupLga,
+    state: data.pickupState,
+  }).catch((e) => console.error("[sell-requests] could not save default address:", e));
 
   return NextResponse.json({ code: sellRequest.code, quotedKobo }, { status: 201 });
 }

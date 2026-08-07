@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, CalendarDays, ChevronLeft, Clock, MapPin, Store, Sun, Sunrise, Sunset, Truck, Wrench } from "lucide-react";
 import { formatNaira } from "@/lib/utils";
 import { DEFAULT_ENABLED_STATE, REPAIR_SERVICE_TYPE_LABELS, formatStateName, type RepairServiceType } from "@/lib/constants";
+import type { AccountPrefill } from "@/lib/account-prefill";
 import { StepIndicator } from "@/components/sell/StepIndicator";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -21,6 +22,7 @@ type Props = {
   brands: Brand[];
   issues: Issue[];
   isAuthenticated: boolean;
+  prefill?: AccountPrefill | null;
 };
 
 const SLOTS = [
@@ -29,7 +31,7 @@ const SLOTS = [
   { id: "Evening (4pm - 7pm)", label: "Evening", time: "4pm – 7pm", icon: Sunset },
 ];
 
-export function RepairWizard({ category, brands, issues, isAuthenticated }: Props) {
+export function RepairWizard({ category, brands, issues, isAuthenticated, prefill }: Props) {
   const router = useRouter();
   const needsVerification = !isAuthenticated;
   const stepKeys = ["device", "issues", ...(needsVerification ? (["verify"] as const) : []), "service", "review"] as const;
@@ -45,15 +47,16 @@ export function RepairWizard({ category, brands, issues, isAuthenticated }: Prop
   const [problemDescription, setProblemDescription] = useState("");
   const [selectedIssueIds, setSelectedIssueIds] = useState<string[]>([]);
   const [serviceType, setServiceType] = useState<RepairServiceType>("DROP_OFF");
+  // Remembered from the customer's account, if logged in — every field below stays editable.
   const [form, setForm] = useState({
-    contactName: "",
-    contactPhone: "",
-    contactEmail: "",
-    pickupLine1: "",
-    pickupLine2: "",
-    pickupCity: "",
-    pickupLga: "",
-    pickupState: DEFAULT_ENABLED_STATE,
+    contactName: prefill?.name ?? "",
+    contactPhone: prefill?.phone ?? "",
+    contactEmail: prefill?.email ?? "",
+    pickupLine1: prefill?.address?.line1 ?? "",
+    pickupLine2: prefill?.address?.line2 ?? "",
+    pickupCity: prefill?.address?.city ?? "",
+    pickupLga: prefill?.address?.lga ?? "",
+    pickupState: prefill?.address?.state || DEFAULT_ENABLED_STATE,
     pickupDate: "",
     pickupSlot: SLOTS[0].id,
   });

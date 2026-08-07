@@ -30,15 +30,16 @@ export async function quoteDeliveryFee(addr: DeliveryAddress): Promise<DeliveryQ
   const settings = await getSettings();
 
   if (!process.env.GOOGLE_MAPS_API_KEY) {
-    return { feeKobo: FALLBACK_FLAT_FEE_KOBO, distanceKm: null, method: "flat", note: "Flat-rate delivery (distance pricing not yet configured)" };
+    return { feeKobo: FALLBACK_FLAT_FEE_KOBO, distanceKm: null, method: "flat", note: "Standard delivery rate applies" };
   }
 
   let distanceKm: number;
   try {
     const destination = await geocodeAddress(toAddressString(addr));
     distanceKm = await drivingDistanceKm({ lat: settings.depotLat, lng: settings.depotLng }, destination);
-  } catch {
-    return { feeKobo: FALLBACK_FLAT_FEE_KOBO, distanceKm: null, method: "flat", note: "Could not pinpoint exact distance — flat rate applied" };
+  } catch (e) {
+    console.error("[delivery] geocode/distance lookup failed, falling back to flat rate:", e);
+    return { feeKobo: FALLBACK_FLAT_FEE_KOBO, distanceKm: null, method: "flat", note: "Standard delivery rate applies" };
   }
 
   if (distanceKm > settings.maxDeliveryKm) {

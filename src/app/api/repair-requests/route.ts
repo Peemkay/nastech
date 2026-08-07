@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { trackingCode } from "@/lib/utils";
 import { isDefaultEnabled } from "@/lib/locations";
 import { REPAIR_SERVICE_TYPES } from "@/lib/constants";
+import { saveDefaultAddress } from "@/lib/account-prefill";
 
 const bodySchema = z
   .object({
@@ -78,6 +79,18 @@ export async function POST(req: NextRequest) {
       statusEvents: { create: [{ status: "REQUESTED", note: "Repair request received" }] },
     },
   });
+
+  if (data.serviceType === "PICKUP") {
+    await saveDefaultAddress(session.user.id, {
+      fullName: data.contactName,
+      phone: data.contactPhone,
+      line1: data.pickupLine1!,
+      line2: data.pickupLine2,
+      city: data.pickupCity!,
+      lga: data.pickupLga,
+      state: data.pickupState!,
+    }).catch((e) => console.error("[repair-requests] could not save default address:", e));
+  }
 
   return NextResponse.json({ code: repairRequest.code, estimatedKobo }, { status: 201 });
 }

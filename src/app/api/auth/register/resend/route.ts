@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generateOtp, hashOtp, otpExpiryDate } from "@/lib/otp";
-import { sendSms } from "@/lib/sms";
+import { deliverOtp } from "@/lib/otp-delivery";
 import { SITE_NAME } from "@/lib/constants";
 
 const schema = z.object({ pendingId: z.string().min(1) });
@@ -26,13 +26,10 @@ export async function POST(req: NextRequest) {
     data: { otpCodeHash: hashOtp(otp), otpExpiresAt: otpExpiryDate(), attempts: 0, lastSentAt: new Date() },
   });
 
-  let devOtp: string | undefined;
-  try {
-    const result = await sendSms(pending.phone, `Your ${SITE_NAME} verification code is ${otp}. It expires in 10 minutes.`);
-    if (result.simulated) devOtp = otp;
-  } catch {
-    devOtp = otp;
+  const delivery = await deliverOtp(pending.phone, `Your ${SITE_NAME} verification code is ${otp}. It expires in 10 minutes.`);
+  if (!delivery.ok) {
+    return NextResponse.json({ error: "We're unable to send verification codes right now. Please try again shortly." }, { status: 503 });
   }
 
-  return NextResponse.json({ ok: true, devOtp });
+  return NextResponse.json({ ok: true, devOtp: delivery.devOtp });
 }

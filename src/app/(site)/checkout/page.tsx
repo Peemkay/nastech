@@ -55,6 +55,30 @@ export default function CheckoutPage() {
     shipLga: "",
     shipState: DEFAULT_ENABLED_STATE,
   });
+
+  // Remember a logged-in customer's details — every field below stays editable,
+  // this just saves them re-typing what we already know.
+  useEffect(() => {
+    fetch("/api/account/prefill")
+      .then((r) => r.json())
+      .then((data: { name: string; phone: string; email: string; address: { line1: string; line2: string; city: string; lga: string; state: string } | null } | null) => {
+        if (!data) return;
+        setForm((f) => ({
+          ...f,
+          contactEmail: data.email || f.contactEmail,
+          contactPhone: data.phone || f.contactPhone,
+          shipFullName: data.name || f.shipFullName,
+          shipPhone: data.phone || f.shipPhone,
+          shipLine1: data.address?.line1 || f.shipLine1,
+          shipLine2: data.address?.line2 || f.shipLine2,
+          shipCity: data.address?.city || f.shipCity,
+          shipLga: data.address?.lga || f.shipLga,
+          shipState: data.address?.state || f.shipState,
+        }));
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [method, setMethod] = useState<PaymentMethod>("PAYSTACK");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

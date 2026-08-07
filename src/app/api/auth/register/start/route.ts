@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/phone";
 import { generateOtp, hashOtp, otpExpiryDate } from "@/lib/otp";
-import { sendSms } from "@/lib/sms";
+import { deliverOtp } from "@/lib/otp-delivery";
 import { SITE_NAME } from "@/lib/constants";
 
 const schema = z.object({
@@ -43,14 +43,11 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  let devOtp: string | undefined;
-  try {
-    const result = await sendSms(phone, `Your ${SITE_NAME} verification code is ${otp}. It expires in 10 minutes.`);
-    if (result.simulated) devOtp = otp;
-  } catch {
-    // SMS provider error — still let them proceed with the on-screen dev code so the flow isn't dead-ended.
-    devOtp = otp;
+  const delivery = await deliverOtp(phone, `Your ${SITE_NAME} verification code is ${otp}. It expires in 10 minutes.`);
+  if (!delivery.ok) {
+    await prisma.pendingRegistration.delete({ where: { id: pending.id } }).catch(() => {});
+    return NextResponse.json({ error: "We're unable to send verification codes right now. Please try again shortly." }, { status: 503 });
   }
 
-  return NextResponse.json({ pendingId: pending.id, phone, devOtp });
+  return NextResponse.json({ pendingId: pending.id, phone, devOtp: delivery.devOtp });
 }

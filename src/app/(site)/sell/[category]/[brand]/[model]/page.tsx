@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { getAccountPrefill } from "@/lib/account-prefill";
 import { Container } from "@/components/ui/Misc";
 import { SellWizard } from "@/components/sell/SellWizard";
 
@@ -31,6 +32,7 @@ export default async function SellWizardPage({
 
   const storageOptions = Array.isArray(model.storageOptions) ? (model.storageOptions as string[]) : [];
   const session = await auth();
+  const prefill = session?.user?.id ? await getAccountPrefill(session.user.id) : null;
 
   return (
     <Container className="py-14">
@@ -44,6 +46,7 @@ export default async function SellWizardPage({
           options: q.options.map((o) => ({ id: o.id, label: o.label, deductionBps: o.deductionBps })),
         }))}
         isAuthenticated={!!session}
+        prefill={prefill}
       />
     </Container>
   );

@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ authorizationUrl: init.authorization_url, reference });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Failed to initialize payment" }, { status: 502 });
+    console.error("[paystack] initialize failed:", e);
+    return NextResponse.json({ error: "Card payment isn't available right now. Please try another payment method." }, { status: 502 });
   }
 }

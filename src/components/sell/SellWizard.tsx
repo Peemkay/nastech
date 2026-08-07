@@ -6,6 +6,7 @@ import { AlertCircle, CalendarDays, ChevronLeft, MapPin, ShieldCheck, Sun, Sunri
 import { computeQuoteKobo } from "@/lib/quote-engine";
 import { formatNaira } from "@/lib/utils";
 import { DEFAULT_ENABLED_STATE, formatStateName } from "@/lib/constants";
+import type { AccountPrefill } from "@/lib/account-prefill";
 import { StepIndicator } from "./StepIndicator";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -22,6 +23,7 @@ type Props = {
   model: { id: string; name: string; slug: string; baseValueKobo: number; storageOptions: string[] };
   questions: Question[];
   isAuthenticated: boolean;
+  prefill?: AccountPrefill | null;
 };
 
 const SLOTS = [
@@ -30,7 +32,7 @@ const SLOTS = [
   { id: "Evening (4pm - 7pm)", label: "Evening", time: "4pm – 7pm", icon: Sunset },
 ];
 
-export function SellWizard({ category, brand, model, questions, isAuthenticated }: Props) {
+export function SellWizard({ category, brand, model, questions, isAuthenticated, prefill }: Props) {
   const router = useRouter();
   const hasStorage = model.storageOptions.length > 0;
   const needsVerification = !isAuthenticated;
@@ -56,15 +58,16 @@ export function SellWizard({ category, brand, model, questions, isAuthenticated 
 
   const [storage, setStorage] = useState(model.storageOptions[0] ?? "");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  // Remembered from the customer's account, if logged in — every field below stays editable.
   const [form, setForm] = useState({
-    contactName: "",
-    contactPhone: "",
-    contactEmail: "",
-    pickupLine1: "",
-    pickupLine2: "",
-    pickupCity: "",
-    pickupLga: "",
-    pickupState: DEFAULT_ENABLED_STATE,
+    contactName: prefill?.name ?? "",
+    contactPhone: prefill?.phone ?? "",
+    contactEmail: prefill?.email ?? "",
+    pickupLine1: prefill?.address?.line1 ?? "",
+    pickupLine2: prefill?.address?.line2 ?? "",
+    pickupCity: prefill?.address?.city ?? "",
+    pickupLga: prefill?.address?.lga ?? "",
+    pickupState: prefill?.address?.state || DEFAULT_ENABLED_STATE,
     pickupDate: "",
     pickupSlot: SLOTS[0].id,
   });

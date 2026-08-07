@@ -118,7 +118,7 @@ export function InlineAuthGate({ onSuccess, defaultMode = "register" }: { onSucc
 
         {devOtp && (
           <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700 ring-1 ring-inset ring-amber-200">
-            SMS isn&apos;t configured yet — dev mode code: <span className="font-mono font-bold">{devOtp}</span>
+            Dev mode — verification code: <span className="font-mono font-bold">{devOtp}</span>
           </p>
         )}
 

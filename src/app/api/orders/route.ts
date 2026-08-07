@@ -6,6 +6,7 @@ import { trackingCode } from "@/lib/utils";
 import { getSettings } from "@/lib/settings";
 import { quoteDeliveryFee, DeliveryUnavailableError } from "@/lib/delivery/pricing";
 import { isDefaultEnabled } from "@/lib/locations";
+import { saveDefaultAddress } from "@/lib/account-prefill";
 
 const bodySchema = z.object({
   items: z.array(z.object({ productId: z.string().min(1), quantity: z.number().int().min(1).max(20) })).min(1),
@@ -88,6 +89,18 @@ export async function POST(req: NextRequest) {
       statusEvents: { create: [{ status: "PENDING_PAYMENT", note: "Order placed — awaiting payment" }] },
     },
   });
+
+  if (session?.user?.id) {
+    await saveDefaultAddress(session.user.id, {
+      fullName: data.shipFullName,
+      phone: data.shipPhone,
+      line1: data.shipLine1,
+      line2: data.shipLine2,
+      city: data.shipCity,
+      lga: data.shipLga,
+      state: data.shipState,
+    }).catch((e) => console.error("[orders] could not save default address:", e));
+  }
 
   return NextResponse.json({ code: order.code, orderId: order.id, totalKobo, subtotalKobo, shippingFeeKobo }, { status: 201 });
 }
