@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { AdminFilterBar } from "@/components/admin/AdminFilterBar";
 import { UserRoleSelect } from "@/components/admin/UserRoleSelect";
 import { AddAdminForm } from "@/components/admin/AddAdminForm";
+import { AdminResetPasswordButton } from "@/components/admin/AdminResetPasswordButton";
 import { EmptyState } from "@/components/ui/Misc";
 
 export const metadata: Metadata = { title: "Users" };
@@ -48,6 +49,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
               <Th>Sell requests</Th>
               <Th>Joined</Th>
               <Th>Role</Th>
+              <Th>Password</Th>
             </tr>
           </Thead>
           <Tbody>
@@ -61,6 +63,11 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                 <Td>
                   {u.role !== "CUSTOMER" && <Badge tone="brand" className="mb-1.5">{u.role}</Badge>}
                   <UserRoleSelect userId={u.id} role={u.role} canEdit={session?.user.role === "SUPERADMIN" && u.id !== session.user.id} />
+                </Td>
+                <Td>
+                  {session?.user.role === "SUPERADMIN" && (
+                    <AdminResetPasswordButton userId={u.id} disabled={u.id === session.user.id} />
+                  )}
                 </Td>
               </Tr>
             ))}
