@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useWishlistStore } from "@/lib/wishlist-store";
+import { useHasMounted } from "@/lib/use-has-mounted";
 
 export function WishlistIndicator() {
   const count = useWishlistStore((s) => s.count());
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHasMounted();
 
   return (
     <Link

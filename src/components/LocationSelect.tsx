@@ -31,6 +31,9 @@ export function LocationSelect({
 
   useEffect(() => {
     if (!state) return;
+    // Legitimate: flip to "loading" the instant the selected state changes,
+    // rather than waiting for the fetch below to resolve.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingLgas(true);
     setLgas([]);
     fetch(`/api/locations/lga?state=${encodeURIComponent(state)}`)

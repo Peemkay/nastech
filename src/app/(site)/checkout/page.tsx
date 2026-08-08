@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Label, Input } from "@/components/ui/Field";
 import { Container, EmptyState } from "@/components/ui/Misc";
 import { LocationSelect } from "@/components/LocationSelect";
+import { useHasMounted } from "@/lib/use-has-mounted";
 import { cn } from "@/lib/utils";
 
 const GATEWAY_ICON: Record<PaymentMethod, typeof CreditCard> = {
@@ -34,8 +35,7 @@ type DeliveryQuote = { feeKobo: number; distanceKm: number | null; method: "dist
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotalKobo, clear } = useCartStore();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHasMounted();
 
   const [settings, setSettings] = useState<PublicSettings | null>(null);
   useEffect(() => {
@@ -77,7 +77,6 @@ export default function CheckoutPage() {
         }));
       })
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [method, setMethod] = useState<PaymentMethod>("PAYSTACK");
   const [submitting, setSubmitting] = useState(false);
@@ -98,6 +97,9 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!addressReady() || freeShipping) {
+      // Legitimate: clear a stale quote the instant the address becomes
+      // invalid/free, rather than leaving last address's fee on screen.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDelivery(null);
       return;
     }

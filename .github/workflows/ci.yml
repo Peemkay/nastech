@@ -1,0 +1,39 @@
+name: CI
+
+# Gate before production: runs on every PR into main, and on main itself as
+# a sanity check after merge. Doesn't deploy anything — Vercel already
+# handles that from its own GitHub integration. This just has to go green
+# before a PR is allowed to merge (see branch protection on `main`).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder values only — this job never connects to a real database
+      # or issues real sessions. `next build` needs these two to be *set* to
+      # something (Prisma Client generation, Auth.js config validation), not
+      # to be valid or reachable.
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci_placeholder"
+      AUTH_SECRET: "ci-placeholder-secret-not-used-anywhere-real"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check + build
+        run: npm run build
