@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, MapPinned } from "lucide-react";
+import { CheckCircle2, MapPinned, MessageSquare } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Label, Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +19,10 @@ export type SettingsValues = {
   bankAccountNumber: string;
   bankAccountName: string;
   freeShippingThresholdNaira: string;
+  smsEnabled: boolean;
+  termiiApiKey: string; // write-only: blank submission leaves the stored key unchanged
+  hasTermiiApiKey: boolean;
+  termiiSenderId: string;
   depotName: string;
   depotAddress: string;
   depotLat: string;
@@ -82,6 +86,9 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
         bankAccountNumber: values.bankAccountNumber,
         bankAccountName: values.bankAccountName,
         freeShippingThresholdKobo: nairaToKobo(Number(values.freeShippingThresholdNaira) || 0),
+        smsEnabled: values.smsEnabled,
+        termiiApiKey: values.termiiApiKey.trim(), // blank = leave unchanged, handled server-side
+        termiiSenderId: values.termiiSenderId.trim(),
         depotName: values.depotName,
         depotAddress: values.depotAddress,
         depotLat: Number(values.depotLat) || 0,
@@ -97,6 +104,9 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
       setError(data.error ?? "Could not save settings");
       setSaving(false);
       return;
+    }
+    if (values.termiiApiKey.trim()) {
+      setValues((s) => ({ ...s, termiiApiKey: "", hasTermiiApiKey: true }));
     }
     setSaving(false);
     setSaved(true);
@@ -181,6 +191,54 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
           <Label>Free delivery threshold (₦)</Label>
           <Input type="number" min={0} value={values.freeShippingThresholdNaira} onChange={(e) => set("freeShippingThresholdNaira", e.target.value)} />
           <p className="mt-1.5 text-xs text-muted">Orders at or above this subtotal get free delivery. Below it, the distance-based fare below applies.</p>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <MessageSquare className="size-4 text-brand-600" />
+          <p className="text-sm font-semibold text-foreground">SMS / OTP (Termii)</p>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          <div className={cn("flex items-center justify-between rounded-xl border px-4 py-3", values.smsEnabled ? "border-green-300 bg-green-50/60" : "border-border")}>
+            <div>
+              <p className="text-sm font-medium text-foreground">Enable SMS sending</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {values.smsEnabled
+                  ? "Registration codes are sent by real SMS via Termii."
+                  : "Off — codes are shown on-screen instead of texted. Useful for testing without spending SMS credit; real customers won't receive a text while this is off."}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={values.smsEnabled}
+              onClick={() => set("smsEnabled", !values.smsEnabled)}
+              className={cn("relative h-6 w-11 shrink-0 rounded-full transition", values.smsEnabled ? "bg-brand-600" : "bg-silver-300")}
+            >
+              <span className={cn("absolute top-0.5 size-5 rounded-full bg-white shadow transition", values.smsEnabled ? "left-5.5" : "left-0.5")} />
+            </button>
+          </div>
+
+          <div>
+            <Label>Termii API key</Label>
+            <Input
+              type="password"
+              autoComplete="off"
+              value={values.termiiApiKey}
+              onChange={(e) => set("termiiApiKey", e.target.value)}
+              placeholder={values.hasTermiiApiKey ? "•••••••••••••••••••• (set — leave blank to keep)" : "Not set — paste your Termii API key"}
+            />
+            <p className="mt-1.5 text-xs text-muted">
+              From your Termii dashboard → Settings → API Keys. {values.hasTermiiApiKey ? "A key is currently configured." : "No key configured yet — SMS can't be sent until one is set."}
+            </p>
+          </div>
+
+          <div>
+            <Label>Sender ID</Label>
+            <Input value={values.termiiSenderId} onChange={(e) => set("termiiSenderId", e.target.value)} placeholder="N-Alert (default)" />
+            <p className="mt-1.5 text-xs text-muted">Optional — leave blank to use the shared default sender ID.</p>
+          </div>
         </CardBody>
       </Card>
 

@@ -27,6 +27,10 @@ export default async function AdminSettingsPage() {
             bankAccountNumber: settings.bankAccountNumber,
             bankAccountName: settings.bankAccountName,
             freeShippingThresholdNaira: String(settings.freeShippingThresholdKobo / 100),
+            smsEnabled: settings.smsEnabled,
+            termiiApiKey: "", // write-only — never sent back down, blank means "unchanged"
+            hasTermiiApiKey: !!(settings.termiiApiKey || process.env.TERMII_API_KEY),
+            termiiSenderId: settings.termiiSenderId ?? "",
             depotName: settings.depotName,
             depotAddress: settings.depotAddress,
             depotLat: String(settings.depotLat),
