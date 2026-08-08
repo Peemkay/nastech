@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useCartStore } from "@/lib/cart-store";
+import { useHasMounted } from "@/lib/use-has-mounted";
 
 export function CartIndicator() {
   const count = useCartStore((s) => s.count());
   // Avoid SSR/client hydration mismatch: zustand persist hydrates after mount.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHasMounted();
 
   return (
     <Link

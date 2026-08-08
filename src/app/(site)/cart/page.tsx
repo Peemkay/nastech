@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
@@ -10,11 +9,11 @@ import { Container, EmptyState } from "@/components/ui/Misc";
 import { Card, CardBody } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { DeviceImagePlaceholder } from "@/components/DeviceIcon";
+import { useHasMounted } from "@/lib/use-has-mounted";
 
 export default function CartPage() {
   const { items, remove, setQuantity, subtotalKobo } = useCartStore();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHasMounted();
 
   if (!mounted) return null;
 

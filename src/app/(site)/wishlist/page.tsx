@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Heart, Trash2 } from "lucide-react";
 import { useWishlistStore } from "@/lib/wishlist-store";
@@ -11,12 +10,12 @@ import { Container, EmptyState } from "@/components/ui/Misc";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { DeviceImagePlaceholder } from "@/components/DeviceIcon";
+import { useHasMounted } from "@/lib/use-has-mounted";
 
 export default function WishlistPage() {
   const { items, remove } = useWishlistStore();
   const addToCart = useCartStore((s) => s.add);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHasMounted();
 
   if (!mounted) return null;
 
