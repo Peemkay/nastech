@@ -340,6 +340,14 @@ model Settings {
   bankAccountName        String  @default("NASTECH Gadgets Limited")
   freeShippingThresholdKobo Int  @default(5000000)
 
+  // --- SMS / OTP (Termii) ---
+  // Admin-managed override so the key can be set/rotated and SMS sending can
+  // be toggled off (e.g. for testing) without a redeploy. Falls back to the
+  // TERMII_API_KEY/TERMII_SENDER_ID env vars when these are unset.
+  smsEnabled     Boolean @default(true)
+  termiiApiKey   String?
+  termiiSenderId String?
+
   // --- Delivery pricing (distance-based, from the depot) ---
   depotName        String @default("NASTECH Hub — Dutsen Alhaji Market")
   depotAddress     String @default("Dutsen Alhaji Market, Bwari Area Council, Abuja, FCT")
